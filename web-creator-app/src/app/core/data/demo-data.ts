@@ -161,15 +161,21 @@ export const demoProjects: SiteProject[] = [
             items: [
               {
                 title: 'Generic component library',
-                body: 'Yeni component tiplerini ileride sisteme kolayca ekleyebileceginiz yapi.'
+                body: 'Yeni component tiplerini ileride sisteme kolayca ekleyebileceginiz yapi.',
+                linkUrl: '/component-library',
+                linkTarget: '_self'
               },
               {
                 title: 'Theme presets',
-                body: 'Hazir tema secin veya renk, font, golge ve radius degerlerini ozellestirin.'
+                body: 'Hazir tema secin veya renk, font, golge ve radius degerlerini ozellestirin.',
+                linkUrl: '/themes',
+                linkTarget: '_self'
               },
               {
                 title: 'Publication review',
-                body: 'Admin yayina gonderir, superadmin belirli sureyle yayina alir.'
+                body: 'Admin yayina gonderir, superadmin belirli sureyle yayina alir.',
+                linkUrl: '/review-flow',
+                linkTarget: '_self'
               }
             ]
           },
@@ -251,9 +257,9 @@ export const demoProjects: SiteProject[] = [
             minHeight: 0,
             columns: ['Plan', 'Aylik', 'Destek'],
             rows: [
-              { label: 'Starter', value: '499 TL / E-posta' },
-              { label: 'Growth', value: '899 TL / Oncelikli' },
-              { label: 'Scale', value: '1499 TL / Ozel kanal' }
+              { cells: ['Starter', '499 TL', 'E-posta'] },
+              { cells: ['Growth', '899 TL', 'Oncelikli'] },
+              { cells: ['Scale', '1499 TL', 'Ozel kanal'] }
             ]
           },
           {

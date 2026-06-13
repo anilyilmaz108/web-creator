@@ -393,7 +393,10 @@ export class BuilderComponent {
       return;
     }
 
-    const items = [...block.items, { title: `Kart ${block.items.length + 1}`, body: 'Aciklama' }];
+    const items = [
+      ...block.items,
+      { title: `Kart ${block.items.length + 1}`, body: 'Aciklama', linkUrl: '', linkTarget: '_self' as const }
+    ];
     this.store.updateBlock(block.id, { items } as Partial<PageBlock>);
   }
 
@@ -407,7 +410,7 @@ export class BuilderComponent {
     this.store.updateBlock(block.id, { items } as Partial<PageBlock>);
   }
 
-  updateFeatureItem(index: number, field: 'title' | 'body', value: string): void {
+  updateFeatureItem(index: number, field: 'title' | 'body' | 'linkUrl' | 'linkTarget', value: string): void {
     const block = this.selectedBlock();
     if (!block || block.type !== 'features') {
       return;
@@ -432,7 +435,7 @@ export class BuilderComponent {
       return;
     }
 
-    const rows = [...block.rows, { label: `Satir ${block.rows.length + 1}`, value: 'Icerik' }];
+    const rows = [...block.rows, { cells: Array.from({ length: block.columns.length }, (_, index) => (index === 0 ? `Satir ${block.rows.length + 1}` : '')) }];
     this.store.updateBlock(block.id, { rows } as Partial<PageBlock>);
   }
 
@@ -446,13 +449,20 @@ export class BuilderComponent {
     this.store.updateBlock(block.id, { rows } as Partial<PageBlock>);
   }
 
-  updateTableRow(index: number, field: 'label' | 'value', value: string): void {
+  updateTableRowCell(index: number, cellIndex: number, value: string): void {
     const block = this.selectedBlock();
     if (!block || block.type !== 'table') {
       return;
     }
 
-    const rows = block.rows.map((row, rowIndex) => (rowIndex === index ? { ...row, [field]: value } : row));
+    const rows = block.rows.map((row, rowIndex) =>
+      rowIndex === index
+        ? {
+            ...row,
+            cells: row.cells.map((cell, currentIndex) => (currentIndex === cellIndex ? value : cell))
+          }
+        : row
+    );
     this.store.updateBlock(block.id, { rows } as Partial<PageBlock>);
   }
 
@@ -465,6 +475,28 @@ export class BuilderComponent {
     const columns = [...block.columns];
     columns[index] = value;
     this.store.updateBlock(block.id, { columns } as Partial<PageBlock>);
+  }
+
+  addTableColumn(): void {
+    const block = this.selectedBlock();
+    if (!block || block.type !== 'table') {
+      return;
+    }
+
+    const columns = [...block.columns, `Kolon ${block.columns.length + 1}`];
+    const rows = block.rows.map((row) => ({ ...row, cells: [...row.cells, ''] }));
+    this.store.updateBlock(block.id, { columns, rows } as Partial<PageBlock>);
+  }
+
+  removeTableColumn(index: number): void {
+    const block = this.selectedBlock();
+    if (!block || block.type !== 'table' || block.columns.length <= 1) {
+      return;
+    }
+
+    const columns = block.columns.filter((_, columnIndex) => columnIndex !== index);
+    const rows = block.rows.map((row) => ({ ...row, cells: row.cells.filter((_, cellIndex) => cellIndex !== index) }));
+    this.store.updateBlock(block.id, { columns, rows } as Partial<PageBlock>);
   }
 
   widgetRowIndexes(): number[] {

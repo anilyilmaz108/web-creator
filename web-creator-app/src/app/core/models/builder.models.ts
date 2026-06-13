@@ -98,8 +98,7 @@ export interface ThemeConfig {
 }
 
 export interface TableRow {
-  label: string;
-  value: string;
+  cells: string[];
 }
 
 export interface ActionButton {
@@ -146,7 +145,7 @@ export interface TextBlock extends BlockBase {
 
 export interface FeaturesBlock extends BlockBase {
   type: 'features';
-  items: Array<{ title: string; body: string }>;
+  items: Array<{ title: string; body: string; linkUrl: string; linkTarget: LinkTarget }>;
 }
 
 export interface TableBlock extends BlockBase {

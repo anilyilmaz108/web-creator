@@ -283,9 +283,9 @@ export class SiteBuilderStore {
         return {
           ...this.createBase(type, 'Cards', 'grid-3'),
           items: [
-            { title: 'Kart 1', body: 'Aciklama' },
-            { title: 'Kart 2', body: 'Aciklama' },
-            { title: 'Kart 3', body: 'Aciklama' }
+            { title: 'Kart 1', body: 'Aciklama', linkUrl: '', linkTarget: '_self' },
+            { title: 'Kart 2', body: 'Aciklama', linkUrl: '', linkTarget: '_self' },
+            { title: 'Kart 3', body: 'Aciklama', linkUrl: '', linkTarget: '_self' }
           ]
         } as FeaturesBlock;
       case 'table':
@@ -293,8 +293,8 @@ export class SiteBuilderStore {
           ...this.createBase(type, 'Table', 'stack'),
           columns: ['Baslik', 'Deger'],
           rows: [
-            { label: 'Satir 1', value: 'Icerik' },
-            { label: 'Satir 2', value: 'Icerik' }
+            { cells: ['Satir 1', 'Icerik'] },
+            { cells: ['Satir 2', 'Icerik'] }
           ]
         } as TableBlock;
       case 'image':
@@ -598,6 +598,45 @@ export class SiteBuilderStore {
         widthPreset: (cta as CtaBlock & { widthPreset?: string }).widthPreset ?? 'full',
         minHeight: (cta as CtaBlock & { minHeight?: number }).minHeight ?? 0
       } as CtaBlock;
+    }
+
+    if (block.type === 'features') {
+      const features = block as FeaturesBlock;
+
+      return {
+        ...baseDefaults,
+        ...features,
+        items: (features.items ?? []).map((item) => ({
+          title: item.title ?? 'Kart',
+          body: item.body ?? '',
+          linkUrl: item.linkUrl ?? '',
+          linkTarget: item.linkTarget ?? '_self'
+        })),
+        widthPreset: (features as FeaturesBlock & { widthPreset?: string }).widthPreset ?? 'full',
+        minHeight: (features as FeaturesBlock & { minHeight?: number }).minHeight ?? 0
+      } as FeaturesBlock;
+    }
+
+    if (block.type === 'table') {
+      const table = block as TableBlock & {
+        rows?: Array<{ label?: string; value?: string; cells?: string[] }>;
+      };
+      const columns = table.columns?.length ? table.columns : ['Baslik', 'Deger'];
+
+      return {
+        ...baseDefaults,
+        ...table,
+        columns,
+        rows: (table.rows ?? []).map((row) => {
+          const legacyRow = row as { label?: string; value?: string; cells?: string[] };
+          const legacyCells = legacyRow.cells ?? [legacyRow.label ?? '', legacyRow.value ?? ''];
+          const cells = Array.from({ length: columns.length }, (_, index) => legacyCells[index] ?? '');
+
+          return { cells };
+        }),
+        widthPreset: (table as TableBlock & { widthPreset?: string }).widthPreset ?? 'full',
+        minHeight: (table as TableBlock & { minHeight?: number }).minHeight ?? 0
+      } as TableBlock;
     }
 
     return {
