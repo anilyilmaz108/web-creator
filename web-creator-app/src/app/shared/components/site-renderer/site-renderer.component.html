@@ -98,6 +98,11 @@
             <div class="grid gap-4" [ngClass]="featureGridClass(block.layout)">
               @for (item of block.items; track item.title) {
                 <div class="rounded-[22px] border p-5" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
+                  @if (item.imageUrl) {
+                    <div class="mb-4 overflow-hidden rounded-[18px]">
+                      <img class="h-44 w-full object-cover" [src]="item.imageUrl" [alt]="item.title" />
+                    </div>
+                  }
                   <h3 class="text-xl font-semibold" [style.fontFamily]="theme.headingFontFamily" [innerHTML]="item.title"></h3>
                   <div class="mt-3 prose prose-slate max-w-none text-sm leading-7" [style.color]="theme.muted" [innerHTML]="item.body"></div>
                   @if (item.linkUrl) {
@@ -216,6 +221,69 @@
                     </button>
                   }
                 </div>
+              } @else if (block.widgetKind === 'buttons' || block.widgetKind === 'button-group') {
+                <div class="mt-5 flex flex-wrap gap-3">
+                  @for (item of block.items; track item; let idx = $index) {
+                    @if (block.linkUrls[idx]) {
+                      <a
+                        class="rounded-full px-5 py-3 text-sm font-semibold no-underline"
+                        [href]="block.linkUrls[idx]"
+                        target="_blank"
+                        [style.background]="block.variant === 'outline' ? 'transparent' : (block.accentColor || theme.accent)"
+                        [style.borderColor]="block.accentColor || theme.accent"
+                        [style.color]="block.variant === 'outline' ? (block.accentColor || theme.accent) : '#ffffff'"
+                      >
+                        {{ item }}
+                      </a>
+                    } @else {
+                      <button
+                        type="button"
+                        class="rounded-full px-5 py-3 text-sm font-semibold"
+                        [style.background]="block.variant === 'outline' ? 'transparent' : (block.accentColor || theme.accent)"
+                        [style.borderColor]="block.accentColor || theme.accent"
+                        [style.color]="block.variant === 'outline' ? (block.accentColor || theme.accent) : '#ffffff'"
+                      >
+                        {{ item }}
+                      </button>
+                    }
+                  }
+                </div>
+              } @else if (block.widgetKind === 'timeline') {
+                <div class="mt-5 space-y-4">
+                  @for (item of block.items; track item; let idx = $index) {
+                    <div class="flex gap-4">
+                      <div class="flex flex-col items-center">
+                        <span class="h-4 w-4 rounded-full" [style.background]="block.accentColor || theme.accent"></span>
+                        @if (idx < block.items.length - 1) {
+                          <span class="mt-2 h-full min-h-12 w-px" [style.background]="theme.border"></span>
+                        }
+                      </div>
+                      <div class="flex-1 rounded-[18px] border p-4" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
+                        <strong class="block">{{ item }}</strong>
+                        <p class="mt-2 text-sm leading-7" [style.color]="theme.muted">{{ block.detailItems[idx] || block.body }}</p>
+                        @if (block.linkUrls[idx]) {
+                          <a class="mt-3 inline-flex text-sm font-semibold no-underline" [href]="block.linkUrls[idx]" target="_blank" [style.color]="block.accentColor || theme.accent">
+                            Detaya git
+                          </a>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              } @else if (block.widgetKind === 'card' || block.widgetKind === 'list-group' || block.widgetKind === 'chat-bubble') {
+                <div class="mt-5 grid gap-4" [ngClass]="featureGridClass(block.layout)">
+                  @for (item of block.items; track item; let idx = $index) {
+                    <div class="rounded-[20px] border p-5" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
+                      <h3 class="text-lg font-semibold">{{ item }}</h3>
+                      <p class="mt-2 text-sm leading-7" [style.color]="theme.muted">{{ block.detailItems[idx] || block.body }}</p>
+                      @if (block.linkUrls[idx]) {
+                        <a class="mt-3 inline-flex text-sm font-semibold no-underline" [href]="block.linkUrls[idx]" target="_blank" [style.color]="block.accentColor || theme.accent">
+                          Detaya git
+                        </a>
+                      }
+                    </div>
+                  }
+                </div>
               } @else if (block.widgetKind === 'tabs') {
                 <div class="mt-5">
                   <div class="flex flex-wrap gap-2">
@@ -316,6 +384,20 @@
                     </div>
                   </div>
                 </div>
+              } @else if (block.widgetKind === 'gallery' && block.variant === 'spotlight') {
+                <div class="mt-5 grid gap-4 lg:grid-cols-[1.4fr_0.8fr]">
+                  <div class="overflow-hidden rounded-[22px] border" [style.borderColor]="theme.border">
+                    <img class="h-full min-h-72 w-full object-cover" [src]="widgetMediaUrl(block, 0)" [alt]="block.items[0] || block.title" />
+                  </div>
+                  <div class="space-y-3">
+                    @for (item of block.items; track item; let idx = $index) {
+                      <div class="rounded-[20px] border p-4" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
+                        <strong>{{ item }}</strong>
+                        <p class="mt-2 text-sm leading-7" [style.color]="theme.muted">{{ block.detailItems[idx] || block.body }}</p>
+                      </div>
+                    }
+                  </div>
+                </div>
               } @else {
                 <div class="mt-5 grid gap-4" [ngClass]="featureGridClass(block.layout)">
                   @for (item of block.items; track item; let idx = $index) {
@@ -347,27 +429,105 @@
           }
           @if (widgetMode(block.widgetKind) === 'navigation') {
             <div class="p-6 md:p-8">
-              <div class="rounded-[22px] border p-4" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
-                <div class="flex flex-wrap items-center gap-3">
-                  @for (item of block.items; track item; let idx = $index) {
-                    @if (block.linkUrls[idx]) {
-                      <a
-                        class="rounded-full px-4 py-2 text-sm font-medium no-underline"
-                        (click)="setIndex(block.id, idx)"
-                        [href]="block.linkUrls[idx]"
-                        [style.background]="currentIndex(block.id) === idx ? (block.accentColor || theme.accent) : theme.surface"
-                        [style.color]="currentIndex(block.id) === idx ? '#ffffff' : theme.foreground"
-                      >
-                        {{ item }}
-                      </a>
-                    } @else {
+              @if (block.widgetKind === 'sidebar') {
+                <div class="grid gap-4 lg:grid-cols-[260px_1fr]">
+                  <div class="rounded-[22px] border p-4" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
+                    <div class="space-y-2">
+                      @for (item of block.items; track item; let idx = $index) {
+                        @if (block.linkUrls[idx]) {
+                          <a
+                            class="block rounded-2xl px-4 py-3 text-sm font-medium no-underline"
+                            (click)="setIndex(block.id, idx)"
+                            [href]="block.linkUrls[idx]"
+                            [style.background]="currentIndex(block.id) === idx ? (block.accentColor || theme.accent) : theme.surface"
+                            [style.color]="currentIndex(block.id) === idx ? '#ffffff' : theme.foreground"
+                          >
+                            {{ item }}
+                          </a>
+                        } @else {
+                          <button type="button" class="block w-full rounded-2xl px-4 py-3 text-left text-sm font-medium" (click)="setIndex(block.id, idx)" [style.background]="currentIndex(block.id) === idx ? (block.accentColor || theme.accent) : theme.surface" [style.color]="currentIndex(block.id) === idx ? '#ffffff' : theme.foreground">
+                            {{ item }}
+                          </button>
+                        }
+                      }
+                    </div>
+                  </div>
+                  <div class="rounded-[22px] border p-5" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
+                    <strong>{{ block.items[currentIndex(block.id)] || block.items[0] }}</strong>
+                    <p class="mt-3 text-sm leading-7" [style.color]="theme.muted">{{ block.detailItems[currentIndex(block.id)] || block.body }}</p>
+                  </div>
+                </div>
+              } @else if (block.widgetKind === 'breadcrumb') {
+                <div class="rounded-[22px] border p-4" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
+                  <div class="flex flex-wrap items-center gap-2 text-sm">
+                    @for (item of block.items; track item; let idx = $index) {
+                      <span [style.color]="idx === block.items.length - 1 ? theme.foreground : theme.muted">{{ item }}</span>
+                      @if (idx < block.items.length - 1) {
+                        <span [style.color]="theme.muted">/</span>
+                      }
+                    }
+                  </div>
+                </div>
+              } @else if (block.widgetKind === 'mega-menu') {
+                <div class="rounded-[22px] border p-4" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
+                  <div class="grid gap-4 md:grid-cols-3">
+                    @for (item of block.items; track item; let idx = $index) {
+                      <div class="rounded-[18px] border p-4" [style.borderColor]="theme.border" [style.background]="theme.surface">
+                        <div class="flex items-center justify-between gap-3">
+                          <strong>{{ item }}</strong>
+                          @if (block.linkUrls[idx]) {
+                            <a class="text-sm font-semibold no-underline" [href]="block.linkUrls[idx]" [style.color]="block.accentColor || theme.accent">Ac</a>
+                          }
+                        </div>
+                        <p class="mt-3 text-sm leading-7" [style.color]="theme.muted">{{ block.detailItems[idx] || block.body }}</p>
+                      </div>
+                    }
+                  </div>
+                </div>
+              } @else if (block.widgetKind === 'dropdowns') {
+                <div class="rounded-[22px] border p-4" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
+                  <div class="flex flex-wrap gap-3">
+                    @for (item of block.items; track item; let idx = $index) {
+                      <details class="min-w-40 rounded-2xl border px-4 py-3" [style.borderColor]="theme.border" [style.background]="theme.surface">
+                        <summary class="cursor-pointer list-none text-sm font-medium">{{ item }}</summary>
+                        <p class="mt-3 text-sm leading-7" [style.color]="theme.muted">{{ block.detailItems[idx] || block.body }}</p>
+                      </details>
+                    }
+                  </div>
+                </div>
+              } @else if (block.widgetKind === 'pagination' || block.widgetKind === 'stepper') {
+                <div class="rounded-[22px] border p-4" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
+                  <div class="flex flex-wrap items-center gap-3">
+                    @for (item of block.items; track item; let idx = $index) {
                       <button type="button" class="rounded-full px-4 py-2 text-sm font-medium" (click)="setIndex(block.id, idx)" [style.background]="currentIndex(block.id) === idx ? (block.accentColor || theme.accent) : theme.surface" [style.color]="currentIndex(block.id) === idx ? '#ffffff' : theme.foreground">
                         {{ item }}
                       </button>
                     }
-                  }
+                  </div>
                 </div>
-              </div>
+              } @else {
+                <div class="rounded-[22px] border p-4" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
+                  <div class="flex flex-wrap items-center gap-3">
+                    @for (item of block.items; track item; let idx = $index) {
+                      @if (block.linkUrls[idx]) {
+                        <a
+                          class="rounded-full px-4 py-2 text-sm font-medium no-underline"
+                          (click)="setIndex(block.id, idx)"
+                          [href]="block.linkUrls[idx]"
+                          [style.background]="currentIndex(block.id) === idx ? (block.accentColor || theme.accent) : theme.surface"
+                          [style.color]="currentIndex(block.id) === idx ? '#ffffff' : theme.foreground"
+                        >
+                          {{ item }}
+                        </a>
+                      } @else {
+                        <button type="button" class="rounded-full px-4 py-2 text-sm font-medium" (click)="setIndex(block.id, idx)" [style.background]="currentIndex(block.id) === idx ? (block.accentColor || theme.accent) : theme.surface" [style.color]="currentIndex(block.id) === idx ? '#ffffff' : theme.foreground">
+                          {{ item }}
+                        </button>
+                      }
+                    }
+                  </div>
+                </div>
+              }
               <div class="mt-4">
                 <h2 class="text-2xl md:text-3xl" [style.fontFamily]="theme.headingFontFamily" [innerHTML]="block.title"></h2>
                 <p class="mt-3 max-w-2xl text-base leading-7" [style.color]="theme.muted">{{ block.detailItems[currentIndex(block.id)] || block.body }}</p>
@@ -376,34 +536,56 @@
           }
           @if (widgetMode(block.widgetKind) === 'feedback') {
             <div class="p-6 md:p-8">
-              <div class="rounded-[22px] border p-5" [style.borderColor]="block.accentColor || theme.accent" [style.background]="theme.surfaceAlt">
-                <div class="flex items-center justify-between gap-3">
-                  <div>
-                    <h2 class="text-xl font-semibold" [style.fontFamily]="theme.headingFontFamily" [innerHTML]="block.title"></h2>
-                    <p class="mt-2 text-sm leading-7" [style.color]="theme.muted">{{ block.body }}</p>
-                  </div>
-                  @if (block.widgetKind === 'spinner') {
-                    <span class="inline-flex h-10 w-10 animate-spin rounded-full border-2 border-transparent" [style.borderTopColor]="block.accentColor || theme.accent" [style.borderRightColor]="block.accentColor || theme.accent"></span>
-                  } @else if (block.widgetKind === 'rating') {
-                    <div class="flex gap-1 text-xl" [style.color]="block.accentColor || theme.accent">★★★★★</div>
-                  } @else if (block.widgetKind === 'progress') {
-                    <div class="w-32 rounded-full" [style.background]="theme.border">
-                      <div class="h-3 rounded-full" [style.width.%]="block.value" [style.background]="block.accentColor || theme.accent"></div>
+              @if (block.widgetKind === 'progress' || block.widgetKind === 'rating' || block.widgetKind === 'indicators') {
+                <div class="space-y-3">
+                  @for (item of block.items; track item; let idx = $index) {
+                    <div class="rounded-[22px] border p-5" [style.borderColor]="block.accentColor || theme.accent" [style.background]="theme.surfaceAlt">
+                      <div class="flex items-center justify-between gap-4">
+                        <div>
+                          <h3 class="text-base font-semibold">{{ item }}</h3>
+                          <p class="mt-2 text-sm leading-7" [style.color]="theme.muted">{{ block.linkUrls[idx] || block.detailItems[idx] || block.body }}</p>
+                        </div>
+                        @if (block.widgetKind === 'rating') {
+                          <div class="text-xl" [style.color]="block.accentColor || theme.accent">
+                            {{ ratingStars(block.numericValues[idx] || 0) }}
+                          </div>
+                        } @else {
+                          <div class="w-36 rounded-full" [style.background]="theme.border">
+                            <div class="h-3 rounded-full" [style.width.%]="block.numericValues[idx] || block.value" [style.background]="block.accentColor || theme.accent"></div>
+                          </div>
+                        }
+                      </div>
                     </div>
-                  } @else if (block.widgetKind === 'modal') {
-                    <button type="button" class="rounded-full px-4 py-2 text-sm font-semibold text-white" [style.background]="block.accentColor || theme.accent" (click)="toggleModal(block.id, true)">Ac</button>
-                  } @else {
-                    <span class="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]" [style.background]="block.accentColor || theme.accent" style="color: white">aktif</span>
                   }
                 </div>
-              </div>
+              } @else {
+                <div class="rounded-[22px] border p-5" [style.borderColor]="block.accentColor || theme.accent" [style.background]="theme.surfaceAlt">
+                  <div class="flex items-center justify-between gap-3">
+                    <div>
+                      <h2 class="text-xl font-semibold" [style.fontFamily]="theme.headingFontFamily" [innerHTML]="block.title"></h2>
+                      <p class="mt-2 text-sm leading-7" [style.color]="theme.muted">{{ block.detailItems[0] || block.body }}</p>
+                    </div>
+                    @if (block.widgetKind === 'spinner') {
+                      <span class="inline-flex h-10 w-10 animate-spin rounded-full border-2 border-transparent" [style.borderTopColor]="block.accentColor || theme.accent" [style.borderRightColor]="block.accentColor || theme.accent"></span>
+                    } @else if (block.widgetKind === 'modal') {
+                      <button type="button" class="rounded-full px-4 py-2 text-sm font-semibold text-white" [style.background]="block.accentColor || theme.accent" (click)="toggleModal(block.id, true)">Ac</button>
+                    } @else if (block.linkUrls[0]) {
+                      <a class="rounded-full px-4 py-2 text-sm font-semibold text-white no-underline" [href]="block.linkUrls[0]" target="_blank" [style.background]="block.accentColor || theme.accent">
+                        Git
+                      </a>
+                    } @else {
+                      <span class="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]" [style.background]="block.accentColor || theme.accent" style="color: white">aktif</span>
+                    }
+                  </div>
+                </div>
+              }
               @if (block.widgetKind === 'modal' && isModalOpen(block.id)) {
                 <div class="mt-4 rounded-[22px] border p-5" [style.borderColor]="theme.border" [style.background]="theme.surface">
                   <div class="flex items-center justify-between gap-3">
-                    <strong>{{ block.title }}</strong>
+                    <strong>{{ block.items[0] || block.title }}</strong>
                     <button type="button" (click)="toggleModal(block.id, false)">Kapat</button>
                   </div>
-                  <p class="mt-3 text-sm leading-7" [style.color]="theme.muted">{{ block.body }}</p>
+                  <p class="mt-3 text-sm leading-7" [style.color]="theme.muted">{{ block.detailItems[0] || block.body }}</p>
                 </div>
               }
             </div>
@@ -413,10 +595,16 @@
               <h2 class="text-2xl md:text-3xl" [style.fontFamily]="theme.headingFontFamily" [innerHTML]="block.title"></h2>
               <p class="mt-3 max-w-2xl text-base leading-7" [style.color]="theme.muted">{{ block.body }}</p>
               @if (block.widgetKind === 'qr-code') {
-                <div class="mt-5 inline-grid grid-cols-7 gap-1 rounded-[20px] border p-4" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
-                  @for (cell of qrMatrix(); track cell) {
-                    <span class="h-4 w-4 rounded-sm" [style.background]="isQrActive(cell) ? theme.foreground : theme.surface"></span>
-                  }
+                <div class="mt-5 flex flex-wrap items-center gap-5">
+                  <div class="inline-grid grid-cols-7 gap-1 rounded-[20px] border p-4" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
+                    @for (cell of qrMatrix(); track cell) {
+                      <span class="h-4 w-4 rounded-sm" [style.background]="isQrActive(cell) ? theme.foreground : theme.surface"></span>
+                    }
+                  </div>
+                  <div class="max-w-sm">
+                    <strong class="block">{{ block.items[0] || 'QR hedefi' }}</strong>
+                    <p class="mt-2 text-sm leading-7" [style.color]="theme.muted">{{ block.linkUrls[0] || 'Hedef URL tanimlanmadi.' }}</p>
+                  </div>
                 </div>
               } @else if (block.widgetKind === 'charts') {
                 <div class="mt-5 rounded-[22px] border p-4" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
@@ -429,6 +617,40 @@
                       </div>
                     }
                   </div>
+                </div>
+              } @else if (block.widgetKind === 'datatables' || block.widgetKind === 'tables') {
+                <div class="mt-5 overflow-hidden rounded-[22px] border" [style.borderColor]="theme.border">
+                  <div class="grid" [style.gridTemplateColumns]="'repeat(' + block.items.length + ', minmax(0, 1fr))'" [style.background]="theme.surfaceAlt">
+                    @for (item of block.items; track item) {
+                      <div class="border-r px-4 py-3 text-sm font-semibold last:border-r-0" [style.borderColor]="theme.border">{{ item }}</div>
+                    }
+                  </div>
+                  <div class="grid border-t" [style.gridTemplateColumns]="'repeat(' + block.items.length + ', minmax(0, 1fr))'" [style.borderColor]="theme.border">
+                    @for (item of block.items; track item; let idx = $index) {
+                      <div class="px-4 py-3 text-sm" [style.color]="idx === 0 ? theme.foreground : theme.muted">{{ block.detailItems[idx] || 'Ornek veri' }}</div>
+                    }
+                  </div>
+                  <div class="grid border-t" [style.gridTemplateColumns]="'repeat(' + block.items.length + ', minmax(0, 1fr))'" [style.borderColor]="theme.border">
+                    @for (item of block.items; track item; let idx = $index) {
+                      <div class="px-4 py-3 text-sm" [style.color]="block.accentColor || theme.accent">{{ block.linkUrls[idx] || 'Durum' }}</div>
+                    }
+                  </div>
+                </div>
+              } @else if (block.widgetKind === 'wysiwyg') {
+                <div class="mt-5 overflow-hidden rounded-[22px] border" [style.borderColor]="theme.border">
+                  <div class="flex flex-wrap gap-2 border-b px-4 py-3" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
+                    <span class="rounded-full px-3 py-1 text-xs font-semibold" [style.background]="theme.surface">B</span>
+                    <span class="rounded-full px-3 py-1 text-xs font-semibold" [style.background]="theme.surface">I</span>
+                    <span class="rounded-full px-3 py-1 text-xs font-semibold" [style.background]="theme.surface">Link</span>
+                  </div>
+                  <div class="p-5 prose prose-slate max-w-none" [innerHTML]="block.detailItems[0] || block.body"></div>
+                  @if (block.linkUrls[0]) {
+                    <div class="border-t px-5 py-4" [style.borderColor]="theme.border">
+                      <a class="text-sm font-semibold no-underline" [href]="block.linkUrls[0]" target="_blank" [style.color]="block.accentColor || theme.accent">
+                        Devam linki
+                      </a>
+                    </div>
+                  }
                 </div>
               } @else {
                 <div class="mt-5 overflow-hidden rounded-[22px] border" [style.borderColor]="theme.border">

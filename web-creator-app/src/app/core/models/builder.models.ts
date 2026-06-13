@@ -145,7 +145,7 @@ export interface TextBlock extends BlockBase {
 
 export interface FeaturesBlock extends BlockBase {
   type: 'features';
-  items: Array<{ title: string; body: string; linkUrl: string; linkTarget: LinkTarget }>;
+  items: Array<{ title: string; body: string; imageUrl: string; linkUrl: string; linkTarget: LinkTarget }>;
 }
 
 export interface TableBlock extends BlockBase {

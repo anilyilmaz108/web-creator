@@ -82,6 +82,11 @@ export class BuilderComponent {
     charts: ['bar', 'line', 'area'],
     carousel: ['masonry', 'slider', 'cards'],
     gallery: ['masonry', 'grid', 'spotlight'],
+    buttons: ['solid', 'outline', 'ghost'],
+    'button-group': ['solid', 'outline', 'segmented'],
+    timeline: ['line', 'cards', 'minimal'],
+    card: ['default', 'elevated', 'media'],
+    'list-group': ['simple', 'boxed', 'divided'],
     tabs: ['underline', 'pills', 'boxed'],
     forms: ['stacked', 'split', 'compact'],
     modal: ['centered', 'drawer', 'fullscreen'],
@@ -323,6 +328,42 @@ export class BuilderComponent {
     return ['charts', 'datatables', 'tables'].includes(kind);
   }
 
+  isActionWidget(kind: string): boolean {
+    return ['buttons', 'button-group'].includes(kind);
+  }
+
+  isTimelineWidget(kind: string): boolean {
+    return kind === 'timeline';
+  }
+
+  isCardLikeWidget(kind: string): boolean {
+    return ['card', 'list-group', 'chat-bubble'].includes(kind);
+  }
+
+  isMetricWidget(kind: string): boolean {
+    return ['progress', 'rating', 'indicators'].includes(kind);
+  }
+
+  isOverlayWidget(kind: string): boolean {
+    return ['modal', 'popover', 'alerts', 'banner', 'toast', 'tooltips'].includes(kind);
+  }
+
+  isDataTableWidget(kind: string): boolean {
+    return ['datatables', 'tables'].includes(kind);
+  }
+
+  isMenuWidget(kind: string): boolean {
+    return ['navbar', 'mega-menu', 'dropdowns', 'sidebar', 'bottom-navigation'].includes(kind);
+  }
+
+  isRichEditorWidget(kind: string): boolean {
+    return kind === 'wysiwyg';
+  }
+
+  isQrWidget(kind: string): boolean {
+    return kind === 'qr-code';
+  }
+
   shouldShowGenericLinkFields(block: PageBlock): boolean {
     return block.type === 'text' || block.type === 'widget';
   }
@@ -395,7 +436,13 @@ export class BuilderComponent {
 
     const items = [
       ...block.items,
-      { title: `Kart ${block.items.length + 1}`, body: 'Aciklama', linkUrl: '', linkTarget: '_self' as const }
+      {
+        title: `Kart ${block.items.length + 1}`,
+        body: 'Aciklama',
+        imageUrl: '',
+        linkUrl: '',
+        linkTarget: '_self' as const
+      }
     ];
     this.store.updateBlock(block.id, { items } as Partial<PageBlock>);
   }
@@ -410,7 +457,11 @@ export class BuilderComponent {
     this.store.updateBlock(block.id, { items } as Partial<PageBlock>);
   }
 
-  updateFeatureItem(index: number, field: 'title' | 'body' | 'linkUrl' | 'linkTarget', value: string): void {
+  updateFeatureItem(
+    index: number,
+    field: 'title' | 'body' | 'imageUrl' | 'linkUrl' | 'linkTarget',
+    value: string
+  ): void {
     const block = this.selectedBlock();
     if (!block || block.type !== 'features') {
       return;

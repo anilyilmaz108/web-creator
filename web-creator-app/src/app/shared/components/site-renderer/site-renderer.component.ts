@@ -222,6 +222,11 @@ export class SiteRendererComponent {
     return block.mediaUrls[index] || block.imageUrl;
   }
 
+  ratingStars(value: number): string {
+    const stars = Math.max(1, Math.min(5, Math.round(value / 20)));
+    return '★'.repeat(stars);
+  }
+
   currentIndex(blockId: string): number {
     return this.widgetState()[blockId] ?? 0;
   }

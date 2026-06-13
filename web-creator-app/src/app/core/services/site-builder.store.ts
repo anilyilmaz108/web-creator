@@ -283,9 +283,27 @@ export class SiteBuilderStore {
         return {
           ...this.createBase(type, 'Cards', 'grid-3'),
           items: [
-            { title: 'Kart 1', body: 'Aciklama', linkUrl: '', linkTarget: '_self' },
-            { title: 'Kart 2', body: 'Aciklama', linkUrl: '', linkTarget: '_self' },
-            { title: 'Kart 3', body: 'Aciklama', linkUrl: '', linkTarget: '_self' }
+            {
+              title: 'Kart 1',
+              body: 'Aciklama',
+              imageUrl: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
+              linkUrl: '',
+              linkTarget: '_self'
+            },
+            {
+              title: 'Kart 2',
+              body: 'Aciklama',
+              imageUrl: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
+              linkUrl: '',
+              linkTarget: '_self'
+            },
+            {
+              title: 'Kart 3',
+              body: 'Aciklama',
+              imageUrl: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1200&q=80',
+              linkUrl: '',
+              linkTarget: '_self'
+            }
           ]
         } as FeaturesBlock;
       case 'table':
@@ -388,7 +406,23 @@ export class SiteBuilderStore {
       case 'pagination':
       case 'stepper':
       case 'bottom-navigation':
+      case 'navbar':
+      case 'mega-menu':
+      case 'dropdowns':
+      case 'sidebar':
         return ['Overview', 'Pricing', 'FAQ'];
+      case 'datatables':
+      case 'tables':
+        return ['Ad', 'Durum', 'Plan'];
+      case 'timeline':
+        return ['Kesif', 'Tasarim', 'Yayin'];
+      case 'buttons':
+      case 'button-group':
+        return ['Basla', 'Demo Al', 'Fiyatlari Gor'];
+      case 'wysiwyg':
+        return ['Baslik', 'Metin', 'Buton'];
+      case 'qr-code':
+        return ['Siteye Git'];
       case 'forms':
       case 'input-field':
       case 'select':
@@ -418,6 +452,18 @@ export class SiteBuilderStore {
         return ['Tab 1 icerigi', 'Tab 2 icerigi', 'Tab 3 icerigi'];
       case 'charts':
         return ['Veri noktasi 1', 'Veri noktasi 2', 'Veri noktasi 3'];
+      case 'datatables':
+      case 'tables':
+        return ['Anil Yilmaz', 'Aktif', 'Growth'];
+      case 'timeline':
+        return ['Ihtiyac analizi tamamlandi.', 'Arayuz ve tema kararlandi.', 'Yayin ve son kontroller yapildi.'];
+      case 'wysiwyg':
+        return ['<h3>Zengin icerik</h3><p>Metin bloklarini burada canli bicimde gosterebilirsiniz.</p>'];
+      case 'dropdowns':
+      case 'mega-menu':
+      case 'navbar':
+      case 'sidebar':
+        return ['Genel bakis', 'Paket detaylari', 'Sik sorulan sorular'];
       default:
         return [];
     }
@@ -468,9 +514,22 @@ export class SiteBuilderStore {
       case 'bottom-navigation':
       case 'breadcrumb':
       case 'dropdowns':
+      case 'mega-menu':
       case 'pagination':
       case 'stepper':
         return ['/ornek-1', '/ornek-2', '/ornek-3'];
+      case 'buttons':
+      case 'button-group':
+        return ['https://example.com/start', 'https://example.com/demo', 'https://example.com/pricing'];
+      case 'timeline':
+        return ['/kesif', '/tasarim', '/yayin'];
+      case 'datatables':
+      case 'tables':
+        return ['Yonetici', 'Canli', 'Aylik'];
+      case 'qr-code':
+        return ['https://example.com/qr-destination'];
+      case 'wysiwyg':
+        return ['https://example.com/read-more'];
       default:
         return [];
     }
@@ -609,6 +668,7 @@ export class SiteBuilderStore {
         items: (features.items ?? []).map((item) => ({
           title: item.title ?? 'Kart',
           body: item.body ?? '',
+          imageUrl: item.imageUrl ?? '',
           linkUrl: item.linkUrl ?? '',
           linkTarget: item.linkTarget ?? '_self'
         })),

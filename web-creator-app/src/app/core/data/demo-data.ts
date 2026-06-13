@@ -162,18 +162,21 @@ export const demoProjects: SiteProject[] = [
               {
                 title: 'Generic component library',
                 body: 'Yeni component tiplerini ileride sisteme kolayca ekleyebileceginiz yapi.',
+                imageUrl: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
                 linkUrl: '/component-library',
                 linkTarget: '_self'
               },
               {
                 title: 'Theme presets',
                 body: 'Hazir tema secin veya renk, font, golge ve radius degerlerini ozellestirin.',
+                imageUrl: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
                 linkUrl: '/themes',
                 linkTarget: '_self'
               },
               {
                 title: 'Publication review',
                 body: 'Admin yayina gonderir, superadmin belirli sureyle yayina alir.',
+                imageUrl: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1200&q=80',
                 linkUrl: '/review-flow',
                 linkTarget: '_self'
               }
