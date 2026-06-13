@@ -1,0 +1,139 @@
+.dashboard {
+  min-height: 100vh;
+  padding: 2rem;
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+}
+
+.topbar,
+.panel,
+.stats article {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.08);
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-radius: 28px;
+}
+
+.eyebrow {
+  margin: 0 0 0.5rem;
+  color: #0f766e;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.topbar__actions,
+.project-card__actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.stats article,
+.panel {
+  border-radius: 24px;
+  padding: 1.25rem;
+}
+
+.stats span,
+.user-card span,
+.project-card p,
+.panel__header p {
+  color: #64748b;
+}
+
+.stats strong {
+  display: block;
+  margin-top: 0.6rem;
+  font-size: 2rem;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 1rem;
+}
+
+.project-grid,
+.user-list {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.project-card,
+.user-card,
+.user-form {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.badge {
+  display: inline-flex;
+  margin-bottom: 0.6rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: #e2e8f0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+input,
+select,
+button,
+a {
+  border: 0;
+  border-radius: 16px;
+  padding: 0.85rem 1rem;
+  font: inherit;
+}
+
+input,
+select {
+  background: #f8fafc;
+}
+
+button,
+a {
+  background: #111827;
+  color: white;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+@media (max-width: 960px) {
+  .topbar,
+  .layout,
+  .project-card,
+  .user-card,
+  .user-form,
+  .topbar__actions,
+  .project-card__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .layout,
+  .stats {
+    grid-template-columns: 1fr;
+  }
+}

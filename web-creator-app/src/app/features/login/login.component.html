@@ -1,0 +1,40 @@
+<section class="login-shell">
+  <div class="login-card">
+    <div class="intro">
+      <span>Web Creator Admin</span>
+      <h1>Site olusturucuyu yonetmek icin giris yapin.</h1>
+      <p>
+        Bu ilk iskelet; rol bazli giris, builder ekranina gecis ve yayina gonderim akislarini gosteren
+        bir admin paneli tabani sunar.
+      </p>
+    </div>
+
+    <form (ngSubmit)="submit()">
+      <label>
+        <span>E-posta</span>
+        <input [(ngModel)]="email" name="email" type="email" />
+      </label>
+
+      <label>
+        <span>Sifre</span>
+        <input [(ngModel)]="password" name="password" type="password" />
+      </label>
+
+      @if (errorMessage()) {
+        <p class="error">{{ errorMessage() }}</p>
+      }
+
+      <button type="submit">Giris Yap</button>
+    </form>
+
+    <div class="accounts">
+      <h2>Hazir test hesaplari</h2>
+      @for (account of demoAccounts; track account.email) {
+        <button class="account" type="button" (click)="fill(account.email, account.password)">
+          <strong>{{ account.role }}</strong>
+          <span>{{ account.email }}</span>
+        </button>
+      }
+    </div>
+  </div>
+</section>

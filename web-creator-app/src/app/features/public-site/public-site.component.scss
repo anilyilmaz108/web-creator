@@ -1,0 +1,21 @@
+.public-site,
+.unavailable {
+  min-height: 100vh;
+  padding: 2rem;
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+}
+
+.unavailable {
+  display: grid;
+  place-items: center;
+}
+
+a {
+  display: inline-flex;
+  margin-top: 1rem;
+  border-radius: 16px;
+  padding: 0.8rem 1rem;
+  background: #111827;
+  color: white;
+  text-decoration: none;
+}

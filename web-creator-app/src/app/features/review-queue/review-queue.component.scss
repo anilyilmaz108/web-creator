@@ -1,0 +1,48 @@
+.queue {
+  min-height: 100vh;
+  padding: 2rem;
+  background: linear-gradient(180deg, #fff7ed 0%, #f8fafc 100%);
+}
+
+header,
+article {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  padding: 1.25rem;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.queue-list {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+button,
+a {
+  border: 0;
+  border-radius: 16px;
+  padding: 0.8rem 1rem;
+  background: #111827;
+  color: white;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+@media (max-width: 720px) {
+  header,
+  article,
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

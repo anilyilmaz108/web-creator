@@ -1,0 +1,30 @@
+<section class="queue">
+  <header>
+    <div>
+      <p>Superadmin Review</p>
+      <h1>Yayin Onay Kuyrugu</h1>
+    </div>
+    <a routerLink="/dashboard">Dashboard</a>
+  </header>
+
+  <div class="queue-list">
+    @for (project of pendingProjects(); track project.id) {
+      <article>
+        <div>
+          <h2>{{ project.name }}</h2>
+          <p>{{ project.publication.requestedAt }}</p>
+        </div>
+        <div class="actions">
+          <button type="button" (click)="approve(project.id, 7)">7 Gun</button>
+          <button type="button" (click)="approve(project.id, 30)">30 Gun</button>
+          <button type="button" (click)="approve(project.id, 90)">90 Gun</button>
+        </div>
+      </article>
+    } @empty {
+      <article>
+        <h2>Kuyruk bos</h2>
+        <p>Su anda onay bekleyen yayin talebi bulunmuyor.</p>
+      </article>
+    }
+  </div>
+</section>

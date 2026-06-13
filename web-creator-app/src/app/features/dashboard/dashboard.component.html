@@ -1,0 +1,92 @@
+<section class="dashboard">
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Admin Dashboard</p>
+      <h1>{{ currentUser()?.name }} ile giris yapildi.</h1>
+      <p>Builder, rol yonetimi ve yayin onay akislarini buradan kontrol edebilirsiniz.</p>
+    </div>
+    <div class="topbar__actions">
+      <a routerLink="/review-queue">Yayin Kuyrugu</a>
+      <button type="button" (click)="logout()">Cikis Yap</button>
+    </div>
+  </header>
+
+  <div class="stats">
+    <article>
+      <span>Projeler</span>
+      <strong>{{ projects().length }}</strong>
+    </article>
+    <article>
+      <span>Yayin Bekleyen</span>
+      <strong>{{ pendingProjects().length }}</strong>
+    </article>
+    <article>
+      <span>Kullanicilar</span>
+      <strong>{{ users().length }}</strong>
+    </article>
+  </div>
+
+  <div class="layout">
+    <section class="panel">
+      <div class="panel__header">
+        <h2>Projeler</h2>
+        <p>Her proje kendi sayfa listesi, tema ayari ve yayin durumu ile saklaniyor.</p>
+      </div>
+
+      <div class="project-grid">
+        @for (project of projects(); track project.id) {
+          <article class="project-card">
+            <div>
+              <span class="badge">{{ project.status }}</span>
+              <h3>{{ project.name }}</h3>
+              <p>/{{ project.slug }}</p>
+            </div>
+            <div class="project-card__actions">
+              <button type="button" (click)="openBuilder(project.id)">Builder</button>
+              <a [routerLink]="['/preview', project.id]">Preview</a>
+              <a [routerLink]="['/sites', project.slug]">Public View</a>
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+
+    @if (canManageUsers()) {
+      <section class="panel">
+        <div class="panel__header">
+          <h2>Kullanici ve Rol Yonetimi</h2>
+          <p>Admin veya superadmin yeni kullanicilar ekleyebilir, rolleri guncelleyebilir.</p>
+        </div>
+
+        <form class="user-form" (ngSubmit)="createUser()">
+          <input [(ngModel)]="newUser.name" name="name" placeholder="Ad Soyad" />
+          <input [(ngModel)]="newUser.email" name="email" placeholder="E-posta" />
+          <input [(ngModel)]="newUser.password" name="password" placeholder="Sifre" />
+          <select [(ngModel)]="newUser.role" name="role">
+            @for (role of roles; track role) {
+              <option [value]="role">{{ role }}</option>
+            }
+          </select>
+          <button type="submit">Kullanici Olustur</button>
+        </form>
+
+        <div class="user-list">
+          @for (user of users(); track user.id) {
+            <article class="user-card">
+              <div>
+                <strong>{{ user.name }}</strong>
+                <span>{{ user.email }}</span>
+              </div>
+              <select [ngModel]="user.role" (ngModelChange)="updateRole(user.id, $event)">
+                <option value="visitor">visitor</option>
+                <option value="moderator">moderator</option>
+                <option value="admin">admin</option>
+                <option value="superadmin">superadmin</option>
+              </select>
+            </article>
+          }
+        </div>
+      </section>
+    }
+  </div>
+</section>

@@ -1,0 +1,14 @@
+@if (site && isAvailable) {
+  <section class="public-site">
+    @for (page of site.pages; track page.id) {
+      <app-site-renderer [page]="page" [theme]="site.theme" />
+    }
+  </section>
+} @else {
+  <section class="unavailable">
+    <div>
+      <p>Bu site su anda yayinda degil veya onay suresi doldu.</p>
+      <a routerLink="/dashboard">Admin Paneline Don</a>
+    </div>
+  </section>
+}

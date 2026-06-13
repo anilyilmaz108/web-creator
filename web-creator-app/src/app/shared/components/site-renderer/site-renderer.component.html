@@ -1,0 +1,143 @@
+<section
+  class="grid w-full gap-6"
+  [ngClass]="{
+    'p-6': viewport === 'desktop',
+    'p-5': viewport === 'tablet',
+    'p-4': viewport === 'mobile'
+  }"
+  [style.background]="theme.background"
+  [style.color]="theme.foreground"
+  [style.fontFamily]="theme.fontFamily"
+>
+  @for (block of page.blocks; track trackByBlockId($index, block)) {
+    <article
+      class="overflow-hidden border shadow-[0_24px_60px_rgba(15,23,42,0.08)] transition"
+      [attr.data-type]="block.type"
+      [style.background]="theme.surface"
+      [style.borderColor]="selectedBlockId === block.id ? theme.accent : 'rgba(148, 163, 184, 0.18)'"
+      [style.borderRadius.px]="theme.cardRadius"
+      [style.outline]="selectedBlockId === block.id ? '3px solid ' + theme.accent : 'none'"
+      [style.outlineOffset.px]="selectedBlockId === block.id ? 2 : 0"
+    >
+      @switch (block.type) {
+        @case ('hero') {
+          <div class="grid gap-8 p-6 md:p-8" [ngClass]="heroLayoutClass(block.layout)">
+            <div class="flex flex-col justify-center">
+              <span
+                class="inline-flex w-fit rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.18em]"
+                [style.background]="'color-mix(in srgb, ' + theme.accent + ' 16%, white)'"
+                [style.color]="theme.accent"
+              >
+                {{ block.eyebrow }}
+              </span>
+              <h1
+                class="mt-4 text-3xl font-bold leading-tight md:text-5xl"
+                [style.fontFamily]="theme.headingFontFamily"
+              >
+                {{ block.heading }}
+              </h1>
+              <p class="mt-4 max-w-2xl text-base leading-7 text-slate-600 md:text-lg">{{ block.body }}</p>
+              <div class="mt-6 flex flex-wrap gap-3">
+                <button
+                  class="rounded-full px-5 py-3 text-sm font-semibold text-white shadow-lg"
+                  [style.background]="theme.accent"
+                >
+                  {{ block.primaryAction }}
+                </button>
+                <button
+                  class="rounded-full border px-5 py-3 text-sm font-semibold"
+                  [style.borderColor]="'rgba(148, 163, 184, 0.35)'"
+                  [style.color]="theme.foreground"
+                >
+                  {{ block.secondaryAction }}
+                </button>
+              </div>
+            </div>
+
+            <div class="overflow-hidden rounded-[24px] bg-slate-100">
+              <img class="h-full min-h-[280px] w-full object-cover" [src]="block.imageUrl" [alt]="block.heading" />
+            </div>
+          </div>
+        }
+        @case ('text') {
+          <div class="p-6 md:p-8">
+            <h2 class="text-2xl font-bold md:text-3xl" [style.fontFamily]="theme.headingFontFamily">
+              {{ block.title }}
+            </h2>
+            <p class="mt-4 max-w-3xl text-base leading-8 text-slate-600">{{ block.body }}</p>
+          </div>
+        }
+        @case ('features') {
+          <div class="p-6 md:p-8">
+            <div class="grid gap-4" [ngClass]="featureGridClass(block.layout)">
+              @for (item of block.items; track item.title) {
+                <div
+                  class="rounded-[22px] border p-5"
+                  [style.borderColor]="'rgba(148, 163, 184, 0.16)'"
+                  [style.background]="'color-mix(in srgb, ' + theme.accent + ' 8%, white)'"
+                >
+                  <h3 class="text-xl font-semibold" [style.fontFamily]="theme.headingFontFamily">{{ item.title }}</h3>
+                  <p class="mt-3 text-sm leading-7 text-slate-600">{{ item.body }}</p>
+                </div>
+              }
+            </div>
+          </div>
+        }
+        @case ('table') {
+          <div class="p-6 md:p-8">
+            <h2 class="text-2xl font-bold md:text-3xl" [style.fontFamily]="theme.headingFontFamily">
+              {{ block.title }}
+            </h2>
+            <div class="mt-5 overflow-hidden rounded-[22px] border" [style.borderColor]="'rgba(148, 163, 184, 0.18)'">
+              <table class="min-w-full border-collapse text-left">
+                <thead [style.background]="'color-mix(in srgb, ' + theme.accent + ' 10%, white)'">
+                  <tr>
+                    @for (column of block.columns; track column) {
+                      <th class="px-4 py-4 text-sm font-semibold text-slate-700">{{ column }}</th>
+                    }
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of block.rows; track row.label) {
+                    <tr class="border-t" [style.borderColor]="'rgba(148, 163, 184, 0.18)'">
+                      <td class="px-4 py-4 text-sm font-medium text-slate-700">{{ row.label }}</td>
+                      <td class="px-4 py-4 text-sm text-slate-600">{{ row.value }}</td>
+                      @if (block.columns.length > 2) {
+                        <td class="px-4 py-4 text-sm text-emerald-600">Aktif</td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        }
+        @case ('image') {
+          <figure class="p-6 md:p-8">
+            <div class="overflow-hidden rounded-[24px]">
+              <img class="h-full min-h-[320px] w-full object-cover" [src]="block.imageUrl" [alt]="block.caption" />
+            </div>
+            <figcaption class="mt-4 text-sm text-slate-500">{{ block.caption }}</figcaption>
+          </figure>
+        }
+        @case ('cta') {
+          <div
+            class="flex flex-col items-start gap-4 p-6 md:p-8"
+            [style.background]="'linear-gradient(135deg, ' + theme.surface + ' 0%, color-mix(in srgb, ' + theme.accent + ' 10%, white) 100%)'"
+          >
+            <h2 class="text-2xl font-bold md:text-3xl" [style.fontFamily]="theme.headingFontFamily">
+              {{ block.heading }}
+            </h2>
+            <p class="max-w-2xl text-base leading-7 text-slate-600">{{ block.body }}</p>
+            <button
+              class="rounded-full px-5 py-3 text-sm font-semibold text-white shadow-lg"
+              [style.background]="theme.accent"
+            >
+              {{ block.actionLabel }}
+            </button>
+          </div>
+        }
+      }
+    </article>
+  }
+</section>
