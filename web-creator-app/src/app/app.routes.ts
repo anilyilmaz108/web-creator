@@ -30,6 +30,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/preview/preview.component').then((m) => m.PreviewComponent)
   },
   {
+    path: 'demo/:siteId',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/demo/demo.component').then((m) => m.DemoComponent)
+  },
+  {
     path: 'review-queue',
     canActivate: [authGuard, roleGuard],
     data: { roles: ['superadmin'] },

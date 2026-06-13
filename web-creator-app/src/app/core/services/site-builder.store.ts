@@ -1,13 +1,24 @@
 import { Injectable, computed, signal } from '@angular/core';
 
+import { componentCatalog } from '../data/component-catalog';
 import { demoProjects, themePresets } from '../data/demo-data';
 import {
+  ActionButton,
   BlockType,
+  CtaBlock,
+  FeaturesBlock,
+  HeroBlock,
+  ImageBlock,
+  LayoutMode,
   PageBlock,
   SitePage,
   SiteProject,
+  TableBlock,
   ThemeConfig,
-  ViewportMode
+  TextBlock,
+  ViewportMode,
+  WidgetBlock,
+  WidgetKind
 } from '../models/builder.models';
 
 const PROJECTS_KEY = 'web-creator-projects';
@@ -21,6 +32,7 @@ export class SiteBuilderStore {
 
   readonly projects = computed(() => this.projectsSignal());
   readonly themePresets = themePresets;
+  readonly componentCatalog = componentCatalog;
   readonly selectedSiteId = computed(() => this.selectedSiteIdSignal());
   readonly selectedBlockId = computed(() => this.selectedBlockIdSignal());
   readonly viewport = computed(() => this.viewportSignal());
@@ -71,17 +83,33 @@ export class SiteBuilderStore {
     }));
   }
 
-  renamePage(pageId: string, name: string): void {
-    this.patchSelectedSite((site) => ({
-      ...site,
-      pages: site.pages.map((page) =>
-        page.id === pageId ? { ...page, name, slug: this.slugify(name) } : page
-      )
-    }));
+  removePage(pageId: string): void {
+    this.patchSelectedSite((site) => {
+      if (site.pages.length <= 1) {
+        return site;
+      }
+
+      const nextPages = site.pages.filter((page) => page.id !== pageId);
+      const nextSelectedId =
+        site.selectedPageId === pageId ? nextPages[0]?.id ?? site.selectedPageId : site.selectedPageId;
+
+      return {
+        ...site,
+        pages: nextPages,
+        selectedPageId: nextSelectedId
+      };
+    });
+    this.selectedBlockIdSignal.set(null);
   }
 
   addBlock(type: BlockType): void {
     const nextBlock = this.createBlock(type);
+    this.patchSelectedPage((page) => ({ ...page, blocks: [...page.blocks, nextBlock] }));
+    this.selectedBlockIdSignal.set(nextBlock.id);
+  }
+
+  addWidget(widgetKind: WidgetKind): void {
+    const nextBlock = this.createWidget(widgetKind);
     this.patchSelectedPage((page) => ({ ...page, blocks: [...page.blocks, nextBlock] }));
     this.selectedBlockIdSignal.set(nextBlock.id);
   }
@@ -109,6 +137,20 @@ export class SiteBuilderStore {
 
       const targetIndex = direction === 'up' ? index - 1 : index + 1;
       if (targetIndex < 0 || targetIndex >= page.blocks.length) {
+        return page;
+      }
+
+      const blocks = [...page.blocks];
+      const [block] = blocks.splice(index, 1);
+      blocks.splice(targetIndex, 0, block);
+      return { ...page, blocks };
+    });
+  }
+
+  moveBlockToIndex(blockId: string, targetIndex: number): void {
+    this.patchSelectedPage((page) => {
+      const index = page.blocks.findIndex((block) => block.id === blockId);
+      if (index < 0 || targetIndex < 0 || targetIndex >= page.blocks.length || index === targetIndex) {
         return page;
       }
 
@@ -198,78 +240,372 @@ export class SiteBuilderStore {
     }));
   }
 
-  private createBlock(type: BlockType): PageBlock {
-    const base = {
+  private createBase<T extends BlockType>(type: T, title: string, layout: LayoutMode = 'stack') {
+    const theme = this.selectedSite()?.theme ?? themePresets[0];
+
+    return {
       id: `block-${crypto.randomUUID()}`,
       type,
-      title: `${type.toUpperCase()} Block`,
-      layout: 'stack' as const
+      title,
+      layout,
+      animation: 'fade-up' as const,
+      fontStyle: 'normal' as const,
+      textAlign: 'left' as const,
+      linkLabel: '',
+      linkUrl: '',
+      linkTarget: '_self' as const,
+      backgroundColor: theme.surface,
+      textColor: theme.foreground,
+      accentColor: theme.accent,
+      widthPreset: 'full' as const,
+      minHeight: 0
     };
+  }
 
+  private createBlock(type: BlockType): PageBlock {
     switch (type) {
       case 'hero':
         return {
-          ...base,
-          type,
-          layout: 'split',
+          ...this.createBase(type, 'Hero', 'split'),
           eyebrow: 'New section',
-          heading: 'Yeni bir hero alanı',
-          body: 'Metinlerinizi, butonlarınızı ve görselinizi bu bölümden yönetin.',
+          heading: 'Yeni bir hero alani',
+          body: 'Metinlerinizi, butonlarinizi ve gorselinizi bu bolumden yonetin.',
+          buttons: [
+            this.createActionButton('Birincil Aksiyon', 'https://example.com', 'solid'),
+            this.createActionButton('Ikincil Aksiyon', '', 'outline')
+          ],
           primaryAction: 'Birincil Aksiyon',
-          secondaryAction: 'İkincil Aksiyon',
+          secondaryAction: 'Ikincil Aksiyon',
           imageUrl:
             'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1200&q=80'
-        };
+        } as HeroBlock;
       case 'features':
         return {
-          ...base,
-          type,
-          layout: 'grid-3',
+          ...this.createBase(type, 'Cards', 'grid-3'),
           items: [
-            { title: 'Kart 1', body: 'Açıklama' },
-            { title: 'Kart 2', body: 'Açıklama' },
-            { title: 'Kart 3', body: 'Açıklama' }
+            { title: 'Kart 1', body: 'Aciklama' },
+            { title: 'Kart 2', body: 'Aciklama' },
+            { title: 'Kart 3', body: 'Aciklama' }
           ]
-        };
+        } as FeaturesBlock;
       case 'table':
         return {
-          ...base,
-          type,
-          columns: ['Başlık', 'Değer'],
+          ...this.createBase(type, 'Table', 'stack'),
+          columns: ['Baslik', 'Deger'],
           rows: [
-            { label: 'Satır 1', value: 'İçerik' },
-            { label: 'Satır 2', value: 'İçerik' }
+            { label: 'Satir 1', value: 'Icerik' },
+            { label: 'Satir 2', value: 'Icerik' }
           ]
-        };
+        } as TableBlock;
       case 'image':
         return {
-          ...base,
-          type,
+          ...this.createBase(type, 'Image', 'stack'),
           imageUrl:
             'https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1200&q=80',
-          caption: 'Görsel açıklaması'
-        };
+          caption: 'Gorsel aciklamasi',
+          altText: 'Ornek gorsel'
+        } as ImageBlock;
       case 'cta':
         return {
-          ...base,
-          type,
-          heading: 'Harekete geçirici alan',
-          body: 'Kullanıcıyı aksiyona yönlendiren kısa metin.',
-          actionLabel: 'Buton'
-        };
+          ...this.createBase(type, 'CTA', 'stack'),
+          heading: 'Harekete gecirici alan',
+          body: 'Kullaniciyi aksiyona yonlendiren kisa metin.',
+          actionLabel: 'Buton',
+          actionUrl: 'https://example.com/start',
+          actionTarget: '_blank',
+          actionStyle: 'solid'
+        } as CtaBlock;
+      case 'widget':
+        return this.createWidget('card');
       case 'text':
       default:
         return {
-          ...base,
-          type: 'text',
-          body: 'Bu alana istediğiniz metni, açıklamayı veya içerik bloklarını ekleyebilirsiniz.'
-        };
+          ...this.createBase('text', 'Text', 'stack'),
+          body: 'Bu alana istediginiz metni, aciklamayi veya icerik bloklarini ekleyebilirsiniz.'
+        } as TextBlock;
     }
+  }
+
+  private createWidget(widgetKind: WidgetKind): WidgetBlock {
+    const meta = componentCatalog.find((item) => item.kind === widgetKind);
+    const title = meta?.label ?? 'Widget';
+
+    return {
+      ...this.createBase('widget', title, this.defaultLayout(widgetKind)),
+      widgetKind,
+      subtitle: meta?.category ?? 'Widget',
+      body: meta?.hint ?? 'Bu widget icin iceriklerinizi inspector tarafindan girebilirsiniz.',
+      imageUrl:
+        widgetKind === 'gallery' || widgetKind === 'video' || widgetKind === 'images'
+          ? 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80'
+          : '',
+      items: this.defaultItems(widgetKind),
+      detailItems: this.defaultDetailItems(widgetKind),
+      numericValues: this.defaultNumericValues(widgetKind),
+      mediaUrls: this.defaultMediaUrls(widgetKind),
+      linkUrls: this.defaultLinkUrls(widgetKind),
+      value: 72,
+      variant: this.defaultVariant(widgetKind)
+    };
+  }
+
+  private defaultVariant(widgetKind: WidgetKind): string {
+    switch (widgetKind) {
+      case 'accordion':
+        return 'single';
+      case 'charts':
+        return 'bar';
+      case 'gallery':
+      case 'carousel':
+        return 'masonry';
+      case 'tabs':
+        return 'underline';
+      case 'forms':
+        return 'stacked';
+      case 'modal':
+        return 'centered';
+      default:
+        return 'default';
+    }
+  }
+
+  private defaultLayout(widgetKind: WidgetKind): LayoutMode {
+    if (['gallery', 'card', 'avatar', 'badge', 'images'].includes(widgetKind)) {
+      return 'grid-3';
+    }
+    if (['forms', 'input-field', 'select', 'textarea', 'checkbox', 'radio'].includes(widgetKind)) {
+      return 'grid-2';
+    }
+    return 'stack';
+  }
+
+  private defaultItems(widgetKind: WidgetKind): string[] {
+    switch (widgetKind) {
+      case 'accordion':
+        return ['Soru 1', 'Soru 2', 'Soru 3'];
+      case 'tabs':
+      case 'breadcrumb':
+      case 'pagination':
+      case 'stepper':
+      case 'bottom-navigation':
+        return ['Overview', 'Pricing', 'FAQ'];
+      case 'forms':
+      case 'input-field':
+      case 'select':
+      case 'textarea':
+      case 'checkbox':
+      case 'radio':
+      case 'toggle':
+        return ['Ad Soyad', 'E-posta', 'Mesaj'];
+      case 'gallery':
+      case 'carousel':
+      case 'images':
+        return ['Gorsel 1', 'Gorsel 2', 'Gorsel 3'];
+      case 'charts':
+      case 'progress':
+      case 'rating':
+        return ['Ocak', 'Subat', 'Mart'];
+      default:
+        return ['Eleman 1', 'Eleman 2', 'Eleman 3'];
+    }
+  }
+
+  private defaultDetailItems(widgetKind: WidgetKind): string[] {
+    switch (widgetKind) {
+      case 'accordion':
+        return ['Icerik 1', 'Icerik 2', 'Icerik 3'];
+      case 'tabs':
+        return ['Tab 1 icerigi', 'Tab 2 icerigi', 'Tab 3 icerigi'];
+      case 'charts':
+        return ['Veri noktasi 1', 'Veri noktasi 2', 'Veri noktasi 3'];
+      default:
+        return [];
+    }
+  }
+
+  private defaultNumericValues(widgetKind: WidgetKind): number[] {
+    switch (widgetKind) {
+      case 'charts':
+      case 'progress':
+      case 'rating':
+        return [35, 60, 85];
+      default:
+        return [];
+    }
+  }
+
+  private defaultMediaUrls(widgetKind: WidgetKind): string[] {
+    switch (widgetKind) {
+      case 'gallery':
+      case 'carousel':
+      case 'images':
+      case 'avatar':
+      case 'device-mockups':
+        return [
+          'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
+          'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
+          'https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1200&q=80'
+        ];
+      case 'video':
+        return ['https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80'];
+      default:
+        return [];
+    }
+  }
+
+  private defaultLinkUrls(widgetKind: WidgetKind): string[] {
+    switch (widgetKind) {
+      case 'forms':
+        return ['Adinizi girin', 'ornek@site.com', 'Mesajinizi yazin'];
+      case 'accordion':
+      case 'tabs':
+        return ['', '', ''];
+      case 'gallery':
+      case 'carousel':
+      case 'images':
+      case 'navbar':
+      case 'sidebar':
+      case 'bottom-navigation':
+      case 'breadcrumb':
+      case 'dropdowns':
+      case 'pagination':
+      case 'stepper':
+        return ['/ornek-1', '/ornek-2', '/ornek-3'];
+      default:
+        return [];
+    }
+  }
+
+  private createActionButton(
+    label: string,
+    url = '',
+    style: ActionButton['style'] = 'solid',
+    target: ActionButton['target'] = '_self'
+  ): ActionButton {
+    return {
+      id: `action-${crypto.randomUUID()}`,
+      label,
+      url,
+      style,
+      target
+    };
   }
 
   private loadProjects(): SiteProject[] {
     const raw = globalThis.localStorage?.getItem(PROJECTS_KEY);
-    return raw ? (JSON.parse(raw) as SiteProject[]) : demoProjects;
+    const source = raw ? (JSON.parse(raw) as SiteProject[]) : demoProjects;
+    return source.map((project) => this.normalizeProject(project));
+  }
+
+  private normalizeProject(project: SiteProject): SiteProject {
+    const theme = this.normalizeTheme(project.theme);
+
+    return {
+      ...project,
+      theme,
+      pages: project.pages.map((page) => ({
+        ...page,
+        blocks: page.blocks.map((block) => this.normalizeBlock(block, theme))
+      }))
+    };
+  }
+
+  private normalizeTheme(theme: ThemeConfig): ThemeConfig {
+    return {
+      ...themePresets[0],
+      ...theme
+    };
+  }
+
+  private normalizeBlock(block: PageBlock, theme: ThemeConfig): PageBlock {
+    const baseDefaults = {
+      animation: 'fade-up' as const,
+      fontStyle: 'normal' as const,
+      textAlign: 'left' as const,
+      linkLabel: '',
+      linkUrl: '',
+      linkTarget: '_self' as const,
+      backgroundColor: theme.surface,
+      textColor: theme.foreground,
+      accentColor: theme.accent
+    };
+
+    if (block.type === 'widget') {
+      const widget = block as WidgetBlock;
+
+      return {
+        ...baseDefaults,
+        ...widget,
+        subtitle: widget.subtitle ?? '',
+        body: widget.body ?? '',
+        imageUrl: widget.imageUrl ?? '',
+        items: widget.items ?? [],
+        detailItems: widget.detailItems ?? [],
+        numericValues: widget.numericValues ?? [],
+        mediaUrls: widget.mediaUrls ?? [],
+        linkUrls: widget.linkUrls ?? [],
+        value: widget.value ?? 72,
+        variant: widget.variant ?? this.defaultVariant(widget.widgetKind),
+        widthPreset: widget.widthPreset ?? 'full',
+        minHeight: widget.minHeight ?? 0
+      } as WidgetBlock;
+    }
+
+    if (block.type === 'hero') {
+      const hero = block as HeroBlock;
+      const legacyButtons = [
+        hero.primaryAction ? this.createActionButton(hero.primaryAction, hero.linkUrl ?? '', 'solid', hero.linkTarget ?? '_self') : null,
+        hero.secondaryAction ? this.createActionButton(hero.secondaryAction, '', 'outline', '_self') : null
+      ].filter(Boolean) as ActionButton[];
+
+      return {
+        ...baseDefaults,
+        ...hero,
+        buttons:
+          hero.buttons?.map((button, index) => ({
+            id: button.id ?? `action-${hero.id}-${index}`,
+            label: button.label ?? `Buton ${index + 1}`,
+            url: button.url ?? '',
+            target: button.target ?? '_self',
+            style: button.style ?? (index === 0 ? 'solid' : 'outline')
+          })) ?? legacyButtons,
+        widthPreset: (hero as HeroBlock & { widthPreset?: string }).widthPreset ?? 'full',
+        minHeight: (hero as HeroBlock & { minHeight?: number }).minHeight ?? 0
+      } as HeroBlock;
+    }
+
+    if (block.type === 'image') {
+      const image = block as ImageBlock;
+
+      return {
+        ...baseDefaults,
+        ...image,
+        altText: image.altText ?? image.caption ?? image.title,
+        widthPreset: (image as ImageBlock & { widthPreset?: string }).widthPreset ?? 'full',
+        minHeight: (image as ImageBlock & { minHeight?: number }).minHeight ?? 0
+      } as ImageBlock;
+    }
+
+    if (block.type === 'cta') {
+      const cta = block as CtaBlock;
+
+      return {
+        ...baseDefaults,
+        ...cta,
+        actionUrl: cta.actionUrl ?? cta.linkUrl ?? '',
+        actionTarget: cta.actionTarget ?? cta.linkTarget ?? '_self',
+        actionStyle: cta.actionStyle ?? 'solid',
+        widthPreset: (cta as CtaBlock & { widthPreset?: string }).widthPreset ?? 'full',
+        minHeight: (cta as CtaBlock & { minHeight?: number }).minHeight ?? 0
+      } as CtaBlock;
+    }
+
+    return {
+      ...baseDefaults,
+      ...block,
+      widthPreset: (block as PageBlock & { widthPreset?: string }).widthPreset ?? 'full',
+      minHeight: (block as PageBlock & { minHeight?: number }).minHeight ?? 0
+    } as PageBlock;
   }
 
   private persist(): void {

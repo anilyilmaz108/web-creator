@@ -1,0 +1,28 @@
+<div class="grid gap-2">
+  @if (label) {
+    <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">{{ label }}</span>
+  }
+  <div class="rounded-2xl border border-white/10 bg-slate-900/80 p-2">
+    <div class="mb-2 flex flex-wrap gap-2">
+      <button type="button" (click)="format('bold')" class="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-sm font-bold text-white">B</button>
+      <button type="button" (click)="format('italic')" class="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-sm italic text-white">I</button>
+      <button type="button" (click)="format('underline')" class="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-sm underline text-white">U</button>
+      <button type="button" (click)="format('justifyLeft')" class="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-sm text-white">Sol</button>
+      <button type="button" (click)="format('justifyCenter')" class="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-sm text-white">Orta</button>
+      <button type="button" (click)="format('justifyRight')" class="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-sm text-white">Sag</button>
+      <button type="button" (click)="format('insertUnorderedList')" class="rounded-xl border border-white/10 bg-white/5 px-3 py-1 text-sm text-white">Liste</button>
+      @for (color of colors; track color) {
+        <button type="button" (click)="format('foreColor', color)" class="h-7 w-7 rounded-full border border-white/10" [style.background]="color"></button>
+      }
+    </div>
+
+    <div
+      #editor
+      contenteditable="true"
+      spellcheck="false"
+      class="rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none"
+      [ngClass]="minHeightClass"
+      (input)="onInput()"
+    ></div>
+  </div>
+</div>

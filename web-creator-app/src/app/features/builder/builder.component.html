@@ -1,6 +1,6 @@
 @if (selectedSite(); as site) {
   <section class="min-h-screen bg-mesh-studio px-4 py-4 text-slate-100 md:px-6">
-    <div class="mx-auto flex max-w-[1800px] flex-col gap-4">
+    <div class="mx-auto flex max-w-[1880px] flex-col gap-4">
       <header class="rounded-[30px] border border-white/10 bg-slate-950/70 px-5 py-4 shadow-studio backdrop-blur md:px-6">
         <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div class="space-y-2">
@@ -12,9 +12,9 @@
             </div>
             <div>
               <h1 class="font-display text-2xl font-bold text-white md:text-4xl">{{ site.name }}</h1>
-              <p class="mt-1 max-w-3xl text-sm text-slate-300 md:text-base">
-                Sol panelden bolum secin, ortadaki canli cihaz maketi uzerinde sonucu gorun, sag panelden tema
-                ve icerigi duzenleyin.
+              <p class="mt-1 max-w-4xl text-sm text-slate-300 md:text-base">
+                Yeni componentleri kategorilerden ekleyin, 2li-3lu-4lu duzenlere alin, link, renk, animasyon ve
+                tipografi ayarlariyla sayfayi zenginlestirin.
               </p>
             </div>
           </div>
@@ -27,10 +27,10 @@
               Dashboard
             </a>
             <a
-              [routerLink]="['/preview', site.id]"
+              [routerLink]="['/demo', site.id]"
               class="inline-flex items-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-100 transition hover:bg-white/10"
             >
-              Tam Preview
+              Demo Izle
             </a>
             @if (canRequestPublication()) {
               <button
@@ -45,7 +45,7 @@
         </div>
       </header>
 
-      <div class="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)_360px]">
+      <div class="grid gap-4 2xl:grid-cols-[360px_minmax(0,1fr)_380px]">
         <aside class="rounded-[28px] border border-white/10 bg-slate-950/70 p-4 shadow-panel backdrop-blur">
           <div class="space-y-6">
             <section class="rounded-[24px] border border-white/10 bg-white/5 p-4">
@@ -71,9 +71,19 @@
                   >
                     <div class="flex items-center justify-between gap-3">
                       <strong class="truncate text-sm font-semibold">{{ page.name }}</strong>
-                      <span class="rounded-full bg-white/10 px-2 py-1 text-[11px] uppercase tracking-[0.16em]">
-                        {{ page.blocks.length }} blok
-                      </span>
+                      <div class="flex items-center gap-2">
+                        <span class="rounded-full bg-white/10 px-2 py-1 text-[11px] uppercase tracking-[0.16em]">
+                          {{ page.blocks.length }} blok
+                        </span>
+                        @if (site.pages.length > 1) {
+                          <span
+                            class="rounded-full border border-rose-300/20 bg-rose-300/10 px-2 py-1 text-[11px] uppercase tracking-[0.16em] text-rose-100"
+                            (click)="$event.stopPropagation(); removePage(page.id)"
+                          >
+                            Sil
+                          </span>
+                        }
+                      </div>
                     </div>
                     <p class="mt-2 truncate text-xs text-slate-400">/{{ page.slug }}</p>
                   </button>
@@ -99,13 +109,13 @@
             <section class="rounded-[24px] border border-white/10 bg-white/5 p-4">
               <div class="mb-4">
                 <h2 class="font-ui text-sm font-semibold uppercase tracking-[0.16em] text-slate-200">
-                  Component Kutuphanesi
+                  Ana Blocklar
                 </h2>
-                <p class="mt-1 text-sm text-slate-400">Surukle-birak benzeri hizli ekleme alani</p>
+                <p class="mt-1 text-sm text-slate-400">Hero, text, image, cards gibi cekirdek alanlar</p>
               </div>
 
-              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                @for (item of blockTypes; track item.type) {
+              <div class="grid gap-3 sm:grid-cols-2 2xl:grid-cols-1">
+                @for (item of baseBlockTypes; track item.type) {
                   <button
                     type="button"
                     (click)="store.addBlock(item.type)"
@@ -114,6 +124,60 @@
                     <strong class="font-display block text-base text-white">{{ item.label }}</strong>
                     <span class="mt-1 block text-sm text-slate-400">{{ item.hint }}</span>
                   </button>
+                }
+              </div>
+            </section>
+
+            <section class="rounded-[24px] border border-white/10 bg-white/5 p-4">
+              <div class="mb-4">
+                <h2 class="font-ui text-sm font-semibold uppercase tracking-[0.16em] text-slate-200">
+                  Component Kutuphanesi
+                </h2>
+                <p class="mt-1 text-sm text-slate-400">Uzatilabilir widget katalogu</p>
+              </div>
+
+              <input
+                [(ngModel)]="catalogSearch"
+                placeholder="Component ara"
+                class="mb-3 w-full rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-400/50"
+              />
+
+              <div class="mb-3 flex flex-wrap gap-2">
+                @for (category of catalogCategories; track category) {
+                  <button
+                    type="button"
+                    (click)="selectCatalogCategory(category)"
+                    class="rounded-full border px-3 py-1.5 text-xs font-medium transition"
+                    [ngClass]="
+                      activeCatalogCategory === category
+                        ? 'border-cyan-300/40 bg-cyan-300/15 text-cyan-100'
+                        : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                    "
+                  >
+                    {{ category }}
+                  </button>
+                }
+              </div>
+
+              <div class="max-h-[520px] space-y-2 overflow-y-auto pr-1">
+                @for (item of filteredCatalog; track item.kind) {
+                  <button
+                    type="button"
+                    (click)="addWidget(item.kind)"
+                    class="w-full rounded-2xl border border-white/10 bg-slate-900/80 p-4 text-left transition hover:border-fuchsia-400/40 hover:bg-slate-900"
+                  >
+                    <div class="flex items-center justify-between gap-3">
+                      <strong class="font-display block text-sm text-white">{{ item.label }}</strong>
+                      <span class="rounded-full bg-white/10 px-2 py-1 text-[11px] uppercase tracking-[0.16em] text-slate-300">
+                        {{ item.category }}
+                      </span>
+                    </div>
+                    <span class="mt-2 block text-sm text-slate-400">{{ item.hint }}</span>
+                  </button>
+                } @empty {
+                  <p class="rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-4 text-sm text-slate-400">
+                    Aramaniza uygun component bulunamadi.
+                  </p>
                 }
               </div>
             </section>
@@ -254,8 +318,13 @@
                 </div>
 
                 <div class="space-y-3">
-                  @for (block of page.blocks; track block.id) {
+                  @for (block of page.blocks; track block.id; let idx = $index) {
                     <article
+                      draggable="true"
+                      (dragstart)="onDragStart(block.id)"
+                      (dragend)="clearDrag()"
+                      (dragover)="$event.preventDefault()"
+                      (drop)="onDropBlock(idx)"
                       class="flex flex-col gap-3 rounded-2xl border p-4 lg:flex-row lg:items-center lg:justify-between"
                       [ngClass]="
                         selectedBlock()?.id === block.id
@@ -263,14 +332,10 @@
                           : 'border-white/10 bg-slate-900/80'
                       "
                     >
-                      <button
-                        type="button"
-                        class="text-left"
-                        (click)="store.selectBlock(block.id)"
-                      >
+                      <button type="button" class="text-left" (click)="store.selectBlock(block.id)">
                         <strong class="block font-display text-lg text-white">{{ block.title }}</strong>
                         <span class="mt-1 block text-sm uppercase tracking-[0.18em] text-slate-400">
-                          {{ block.type }} · {{ block.layout }}
+                          {{ block.type }} · {{ block.layout }} · {{ block.animation }}
                         </span>
                       </button>
 
@@ -305,15 +370,18 @@
           }
         </main>
 
-        <aside class="rounded-[28px] border border-white/10 bg-slate-950/70 p-4 shadow-panel backdrop-blur">
+        <aside class="sticky top-4 self-start max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[28px] border border-white/10 bg-slate-950/70 p-4 shadow-panel backdrop-blur">
           <div class="space-y-6">
-            <section class="rounded-[24px] border border-white/10 bg-white/5 p-4">
-              <div class="mb-4">
-                <h2 class="font-ui text-sm font-semibold uppercase tracking-[0.16em] text-slate-200">Tema</h2>
-                <p class="mt-1 text-sm text-slate-400">Hazir tema sec veya ince ayar yap</p>
-              </div>
+            <details open class="rounded-[24px] border border-white/10 bg-white/5 p-4">
+              <summary class="flex cursor-pointer list-none items-center justify-between gap-3">
+                <div>
+                  <h2 class="font-ui text-sm font-semibold uppercase tracking-[0.16em] text-slate-200">Tema</h2>
+                  <p class="mt-1 text-sm text-slate-400">Renk paleti, tipografi ve yuzey ayarlari</p>
+                </div>
+                <span class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">Goster/Gizle</span>
+              </summary>
 
-              <div class="grid gap-3">
+              <div class="mt-4 grid gap-3">
                 @for (theme of presetThemes; track theme.name) {
                   <button
                     type="button"
@@ -330,178 +398,575 @@
                 }
               </div>
 
+              <div class="mt-4 flex flex-wrap gap-2">
+                @for (color of colorPalette; track color) {
+                  <button
+                    type="button"
+                    (click)="applyThemePalette(color)"
+                    class="h-9 w-9 rounded-full border border-white/10 shadow"
+                    [style.background]="color"
+                  ></button>
+                }
+              </div>
+
               <div class="mt-4 grid gap-3">
                 <label class="grid gap-2 text-sm text-slate-300">
                   <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Body Font</span>
-                  <input
-                    [ngModel]="site.theme.fontFamily"
-                    (ngModelChange)="updateThemeField('fontFamily', $event)"
-                    class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
-                  />
+                  <input [ngModel]="site.theme.fontFamily" (ngModelChange)="updateThemeField('fontFamily', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
                 </label>
                 <label class="grid gap-2 text-sm text-slate-300">
                   <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Heading Font</span>
-                  <input
-                    [ngModel]="site.theme.headingFontFamily"
-                    (ngModelChange)="updateThemeField('headingFontFamily', $event)"
-                    class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
-                  />
+                  <input [ngModel]="site.theme.headingFontFamily" (ngModelChange)="updateThemeField('headingFontFamily', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
                 </label>
                 <label class="grid gap-2 text-sm text-slate-300">
                   <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Accent</span>
-                  <input
-                    [ngModel]="site.theme.accent"
-                    (ngModelChange)="updateThemeField('accent', $event)"
-                    class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
-                  />
+                  <input [ngModel]="site.theme.accent" (ngModelChange)="updateThemeField('accent', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
                 </label>
                 <label class="grid gap-2 text-sm text-slate-300">
-                  <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Radius</span>
-                  <input
-                    type="number"
-                    [ngModel]="site.theme.cardRadius"
-                    (ngModelChange)="updateThemeField('cardRadius', +$event)"
-                    class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
-                  />
+                  <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Background</span>
+                  <input [ngModel]="site.theme.background" (ngModelChange)="updateThemeField('background', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
                 </label>
+                <label class="grid gap-2 text-sm text-slate-300">
+                  <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Surface</span>
+                  <input [ngModel]="site.theme.surface" (ngModelChange)="updateThemeField('surface', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
+                </label>
+                <div class="grid gap-3 sm:grid-cols-2">
+                  <label class="grid min-w-0 gap-2 text-sm text-slate-300">
+                    <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Radius</span>
+                    <input type="number" [ngModel]="site.theme.cardRadius" (ngModelChange)="updateThemeField('cardRadius', +$event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
+                  </label>
+                  <label class="grid min-w-0 gap-2 text-sm text-slate-300">
+                    <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Gap</span>
+                    <input type="number" [ngModel]="site.theme.sectionGap" (ngModelChange)="updateThemeField('sectionGap', +$event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
+                  </label>
+                </div>
               </div>
-            </section>
+            </details>
 
-            <section class="rounded-[24px] border border-white/10 bg-white/5 p-4">
-              <div class="mb-4">
-                <h2 class="font-ui text-sm font-semibold uppercase tracking-[0.16em] text-slate-200">
-                  Block Inspector
-                </h2>
-                <p class="mt-1 text-sm text-slate-400">Secili bolumun icerigini duzenleyin</p>
-              </div>
+            <details open class="rounded-[24px] border border-white/10 bg-white/5 p-4">
+              <summary class="flex cursor-pointer list-none items-center justify-between gap-3">
+                <div>
+                  <h2 class="font-ui text-sm font-semibold uppercase tracking-[0.16em] text-slate-200">Block Inspector</h2>
+                  <p class="mt-1 text-sm text-slate-400">Link, layout, renk, tipografi ve animasyon ayarlari</p>
+                </div>
+                <span class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">Goster/Gizle</span>
+              </summary>
 
               @if (selectedBlock(); as block) {
-                <div class="grid gap-3">
+                <div class="mt-4 grid gap-3">
+                  <details open class="rounded-2xl border border-white/10 bg-slate-950/40 p-3">
+                    <summary class="cursor-pointer list-none text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">Temel</summary>
+                    <div class="mt-3 grid gap-3">
                   <label class="grid gap-2 text-sm text-slate-300">
                     <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Baslik</span>
-                    <input
-                      [ngModel]="block.title"
-                      (ngModelChange)="updateBlockField('title', $event)"
-                      class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
-                    />
+                    <input [ngModel]="block.title" (ngModelChange)="updateBlockField('title', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
                   </label>
 
+                  <div class="grid grid-cols-2 gap-3">
+                    <label class="grid gap-2 text-sm text-slate-300">
+                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Layout</span>
+                      <select [ngModel]="block.layout" (ngModelChange)="updateBlockField('layout', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50">
+                        @for (option of layoutOptions; track option) {
+                          <option [value]="option">{{ option }}</option>
+                        }
+                      </select>
+                    </label>
+                    <label class="grid gap-2 text-sm text-slate-300">
+                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Animasyon</span>
+                      <select [ngModel]="block.animation" (ngModelChange)="updateBlockField('animation', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50">
+                        @for (option of animationOptions; track option) {
+                          <option [value]="option">{{ option }}</option>
+                        }
+                      </select>
+                    </label>
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-3">
+                    <label class="grid gap-2 text-sm text-slate-300">
+                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Yazi stili</span>
+                      <select [ngModel]="block.fontStyle" (ngModelChange)="updateBlockField('fontStyle', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50">
+                        @for (option of fontStyleOptions; track option) {
+                          <option [value]="option">{{ option }}</option>
+                        }
+                      </select>
+                    </label>
+                    <label class="grid gap-2 text-sm text-slate-300">
+                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Hizalama</span>
+                      <select [ngModel]="block.textAlign" (ngModelChange)="updateBlockField('textAlign', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50">
+                        @for (option of textAlignOptions; track option) {
+                          <option [value]="option">{{ option }}</option>
+                        }
+                      </select>
+                    </label>
+                  </div>
+
                   <label class="grid gap-2 text-sm text-slate-300">
-                    <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Layout</span>
-                    <select
-                      [ngModel]="block.layout"
-                      (ngModelChange)="updateBlockField('layout', $event)"
-                      class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
-                    >
-                      <option value="stack">stack</option>
-                      <option value="split">split</option>
-                      <option value="grid-2">grid-2</option>
-                      <option value="grid-3">grid-3</option>
+                    <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Genislik</span>
+                    <select [ngModel]="block.widthPreset" (ngModelChange)="updateBlockField('widthPreset', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50">
+                      @for (option of widthOptions; track option) {
+                        <option [value]="option">{{ option }}</option>
+                      }
                     </select>
                   </label>
 
+                  <label class="grid gap-2 text-sm text-slate-300">
+                    <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Min Height</span>
+                    <input type="number" [ngModel]="block.minHeight" (ngModelChange)="updateBlockNumber('minHeight', +$event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
+                  </label>
+                    </div>
+                  </details>
+
+                  <details open class="rounded-2xl border border-white/10 bg-slate-950/40 p-3">
+                    <summary class="cursor-pointer list-none text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">Link ve Renk</summary>
+                    <div class="mt-3 grid gap-3">
+                  @if (shouldShowGenericLinkFields(block)) {
+                    <label class="grid gap-2 text-sm text-slate-300">
+                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Link etiketi</span>
+                      <input [ngModel]="block.linkLabel" (ngModelChange)="updateBlockField('linkLabel', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
+                    </label>
+                    <label class="grid gap-2 text-sm text-slate-300">
+                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Link URL</span>
+                      <input [ngModel]="block.linkUrl" (ngModelChange)="updateBlockField('linkUrl', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
+                    </label>
+                    <label class="grid gap-2 text-sm text-slate-300">
+                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Link target</span>
+                      <select [ngModel]="block.linkTarget" (ngModelChange)="updateBlockField('linkTarget', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50">
+                        <option value="_self">Ayni sekme</option>
+                        <option value="_blank">Yeni sekme</option>
+                      </select>
+                    </label>
+                  }
+
+                  <div class="grid grid-cols-2 gap-3">
+                    <label class="grid gap-2 text-sm text-slate-300">
+                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Arka plan</span>
+                      <input [ngModel]="block.backgroundColor" (ngModelChange)="updateBlockField('backgroundColor', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
+                    </label>
+                    <label class="grid gap-2 text-sm text-slate-300">
+                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Vurgu rengi</span>
+                      <input [ngModel]="block.accentColor" (ngModelChange)="updateBlockField('accentColor', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
+                    </label>
+                  </div>
+
+                  <div class="flex flex-wrap gap-2">
+                    @for (color of colorPalette; track color) {
+                      <button type="button" (click)="applyBlockAccent(color)" class="h-8 w-8 rounded-full border border-white/10" [style.background]="color"></button>
+                    }
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    @for (color of colorPalette; track color) {
+                      <button type="button" (click)="applyBlockBackground(color)" class="h-8 w-8 rounded-full border border-white/10" [style.background]="color"></button>
+                    }
+                  </div>
+                    </div>
+                  </details>
+
                   @if (block.type === 'hero') {
+                    <details open class="rounded-2xl border border-white/10 bg-slate-950/40 p-3">
+                      <summary class="cursor-pointer list-none text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">Hero Icerigi</summary>
+                      <div class="mt-3 grid gap-3">
                     <label class="grid gap-2 text-sm text-slate-300">
                       <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Eyebrow</span>
-                      <input
-                        [ngModel]="block.eyebrow"
-                        (ngModelChange)="updateBlockField('eyebrow', $event)"
-                        class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
-                      />
+                      <input [ngModel]="block.eyebrow" (ngModelChange)="updateBlockField('eyebrow', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
                     </label>
-                    <label class="grid gap-2 text-sm text-slate-300">
-                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Heading</span>
-                      <input
-                        [ngModel]="block.heading"
-                        (ngModelChange)="updateBlockField('heading', $event)"
-                        class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
-                      />
-                    </label>
-                    <label class="grid gap-2 text-sm text-slate-300">
-                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Body</span>
-                      <textarea
-                        [ngModel]="block.body"
-                        (ngModelChange)="updateBlockField('body', $event)"
-                        class="min-h-28 rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
-                      ></textarea>
-                    </label>
+                    <app-rich-text-editor label="Heading" [value]="block.heading" (valueChange)="updateBlockField('heading', $event)" minHeightClass="min-h-[88px]" />
+                    <app-rich-text-editor label="Body" [value]="block.body" (valueChange)="updateBlockField('body', $event)" />
                     <label class="grid gap-2 text-sm text-slate-300">
                       <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Image URL</span>
-                      <input
-                        [ngModel]="block.imageUrl"
-                        (ngModelChange)="updateBlockField('imageUrl', $event)"
-                        class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
-                      />
+                      <input [ngModel]="block.imageUrl" (ngModelChange)="updateBlockField('imageUrl', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
                     </label>
+                    <div class="grid gap-3 rounded-2xl border border-white/10 bg-slate-900/40 p-3">
+                      <div class="flex items-center justify-between gap-3">
+                        <div>
+                          <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">Hero Butonlari</p>
+                          <p class="mt-1 text-xs text-slate-400">Her butonun metni, linki ve stili ayri ayri yonetilir.</p>
+                        </div>
+                        <button type="button" (click)="addHeroButton()" class="rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold text-cyan-100">Buton Ekle</button>
+                      </div>
+
+                      <div class="space-y-3">
+                        @for (buttonIndex of heroButtonIndexes(); track buttonIndex) {
+                          <div class="rounded-2xl border border-white/10 bg-slate-950/50 p-3">
+                            <div class="mb-3 flex items-center justify-between gap-3">
+                              <strong class="text-sm text-white">Buton {{ buttonIndex + 1 }}</strong>
+                              <button type="button" (click)="removeHeroButton(buttonIndex)" class="rounded-xl border border-rose-300/20 bg-rose-300/10 px-3 py-2 text-xs font-semibold text-rose-100">Sil</button>
+                            </div>
+
+                            <div class="grid gap-3">
+                              <label class="grid gap-2 text-sm text-slate-300">
+                                <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Metin</span>
+                                <input [ngModel]="block.buttons[buttonIndex].label" (ngModelChange)="updateHeroButtonField(buttonIndex, 'label', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
+                              </label>
+                              <label class="grid gap-2 text-sm text-slate-300">
+                                <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Link</span>
+                                <input [ngModel]="block.buttons[buttonIndex].url" (ngModelChange)="updateHeroButtonField(buttonIndex, 'url', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
+                              </label>
+                              <div class="grid grid-cols-2 gap-3">
+                                <label class="grid gap-2 text-sm text-slate-300">
+                                  <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Target</span>
+                                  <select [ngModel]="block.buttons[buttonIndex].target" (ngModelChange)="updateHeroButtonField(buttonIndex, 'target', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50">
+                                    <option value="_self">Ayni sekme</option>
+                                    <option value="_blank">Yeni sekme</option>
+                                  </select>
+                                </label>
+                                <label class="grid gap-2 text-sm text-slate-300">
+                                  <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Stil</span>
+                                  <select [ngModel]="block.buttons[buttonIndex].style" (ngModelChange)="updateHeroButtonField(buttonIndex, 'style', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50">
+                                    @for (style of buttonStyleOptions; track style) {
+                                      <option [value]="style">{{ style }}</option>
+                                    }
+                                  </select>
+                                </label>
+                              </div>
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                      </div>
+                    </details>
                   }
 
                   @if (block.type === 'text') {
-                    <label class="grid gap-2 text-sm text-slate-300">
-                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Body</span>
-                      <textarea
-                        [ngModel]="block.body"
-                        (ngModelChange)="updateBlockField('body', $event)"
-                        class="min-h-28 rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
-                      ></textarea>
-                    </label>
+                    <details open class="rounded-2xl border border-white/10 bg-slate-950/40 p-3">
+                      <summary class="cursor-pointer list-none text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">Metin Icerigi</summary>
+                      <div class="mt-3">
+                        <app-rich-text-editor label="Body" [value]="block.body" (valueChange)="updateBlockField('body', $event)" />
+                      </div>
+                    </details>
                   }
 
                   @if (block.type === 'image') {
-                    <label class="grid gap-2 text-sm text-slate-300">
-                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Image URL</span>
-                      <input
-                        [ngModel]="block.imageUrl"
-                        (ngModelChange)="updateBlockField('imageUrl', $event)"
-                        class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
-                      />
-                    </label>
-                    <label class="grid gap-2 text-sm text-slate-300">
-                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Caption</span>
-                      <input
-                        [ngModel]="block.caption"
-                        (ngModelChange)="updateBlockField('caption', $event)"
-                        class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
-                      />
-                    </label>
+                    <details open class="rounded-2xl border border-white/10 bg-slate-950/40 p-3">
+                      <summary class="cursor-pointer list-none text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">Image Icerigi</summary>
+                      <div class="mt-3 grid gap-3">
+                        <label class="grid gap-2 text-sm text-slate-300">
+                          <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Image URL</span>
+                          <input [ngModel]="block.imageUrl" (ngModelChange)="updateBlockField('imageUrl', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
+                        </label>
+                        <label class="grid gap-2 text-sm text-slate-300">
+                          <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Alt text</span>
+                          <input [ngModel]="block.altText" (ngModelChange)="updateBlockField('altText', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
+                        </label>
+                        <app-rich-text-editor label="Caption" [value]="block.caption" (valueChange)="updateBlockField('caption', $event)" minHeightClass="min-h-[88px]" />
+                      </div>
+                    </details>
                   }
 
                   @if (block.type === 'cta') {
-                    <label class="grid gap-2 text-sm text-slate-300">
-                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Heading</span>
-                      <input
-                        [ngModel]="block.heading"
-                        (ngModelChange)="updateBlockField('heading', $event)"
-                        class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
-                      />
-                    </label>
-                    <label class="grid gap-2 text-sm text-slate-300">
-                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Body</span>
-                      <textarea
-                        [ngModel]="block.body"
-                        (ngModelChange)="updateBlockField('body', $event)"
-                        class="min-h-28 rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
-                      ></textarea>
-                    </label>
-                    <label class="grid gap-2 text-sm text-slate-300">
-                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Button</span>
-                      <input
-                        [ngModel]="block.actionLabel"
-                        (ngModelChange)="updateBlockField('actionLabel', $event)"
-                        class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
-                      />
-                    </label>
-                  }
-
-                  @if (block.type === 'table') {
-                    <p class="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
-                      Tablo satirlari store icinde tutuluyor. Sonraki iterasyonda satir-sutun editoru eklenebilir.
-                    </p>
+                    <details open class="rounded-2xl border border-white/10 bg-slate-950/40 p-3">
+                      <summary class="cursor-pointer list-none text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">CTA Icerigi</summary>
+                      <div class="mt-3 grid gap-3">
+                    <app-rich-text-editor label="Heading" [value]="block.heading" (valueChange)="updateBlockField('heading', $event)" minHeightClass="min-h-[88px]" />
+                    <app-rich-text-editor label="Body" [value]="block.body" (valueChange)="updateBlockField('body', $event)" />
+                    <div class="rounded-2xl border border-white/10 bg-slate-900/40 p-3">
+                      <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">CTA Butonu</p>
+                      <div class="mt-3 grid gap-3">
+                        <label class="grid gap-2 text-sm text-slate-300">
+                          <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Button</span>
+                          <input [ngModel]="block.actionLabel" (ngModelChange)="updateBlockField('actionLabel', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
+                        </label>
+                        <label class="grid gap-2 text-sm text-slate-300">
+                          <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Link</span>
+                          <input [ngModel]="block.actionUrl" (ngModelChange)="updateBlockField('actionUrl', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
+                        </label>
+                        <div class="grid grid-cols-2 gap-3">
+                          <label class="grid gap-2 text-sm text-slate-300">
+                            <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Target</span>
+                            <select [ngModel]="block.actionTarget" (ngModelChange)="updateBlockField('actionTarget', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50">
+                              <option value="_self">Ayni sekme</option>
+                              <option value="_blank">Yeni sekme</option>
+                            </select>
+                          </label>
+                          <label class="grid gap-2 text-sm text-slate-300">
+                            <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Stil</span>
+                            <select [ngModel]="block.actionStyle" (ngModelChange)="updateBlockField('actionStyle', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50">
+                              @for (style of buttonStyleOptions; track style) {
+                                <option [value]="style">{{ style }}</option>
+                              }
+                            </select>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                      </div>
+                    </details>
                   }
 
                   @if (block.type === 'features') {
-                    <p class="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-3 text-sm text-cyan-100">
-                      Kart editoru sonraki iterasyonda repeater mantigiyla detaylandirilabilir.
-                    </p>
+                    <details open class="rounded-2xl border border-white/10 bg-slate-950/40 p-3">
+                      <summary class="cursor-pointer list-none text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">Kartlar</summary>
+                      <div class="mt-3 rounded-2xl border border-white/10 bg-slate-900/40 p-3">
+                        <div class="mb-3 flex items-center justify-between gap-3">
+                          <div>
+                            <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">Feature Kartlari</p>
+                            <p class="mt-1 text-xs text-slate-400">Baslik ve icerikleri kart kart duzenleyin.</p>
+                          </div>
+                          <button type="button" (click)="addFeatureItem()" class="rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold text-cyan-100">Kart Ekle</button>
+                        </div>
+
+                        <div class="space-y-3">
+                          @for (itemIndex of featureIndexes(); track itemIndex) {
+                            <div class="rounded-2xl border border-white/10 bg-slate-950/50 p-3">
+                              <div class="mb-3 flex items-center justify-between gap-3">
+                                <strong class="text-sm text-white">Kart {{ itemIndex + 1 }}</strong>
+                                <button type="button" (click)="removeFeatureItem(itemIndex)" class="rounded-xl border border-rose-300/20 bg-rose-300/10 px-3 py-2 text-xs font-semibold text-rose-100">Sil</button>
+                              </div>
+                              <div class="grid gap-3">
+                                <label class="grid gap-2 text-sm text-slate-300">
+                                  <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Baslik</span>
+                                  <input [ngModel]="block.items[itemIndex].title" (ngModelChange)="updateFeatureItem(itemIndex, 'title', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
+                                </label>
+                                <app-rich-text-editor label="Icerik" [value]="block.items[itemIndex].body" (valueChange)="updateFeatureItem(itemIndex, 'body', $event)" />
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    </details>
+                  }
+
+                  @if (block.type === 'table') {
+                    <details open class="rounded-2xl border border-white/10 bg-slate-950/40 p-3">
+                      <summary class="cursor-pointer list-none text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">Tablo Icerigi</summary>
+                      <div class="mt-3 grid gap-3">
+                        <div class="grid grid-cols-2 gap-3">
+                          <label class="grid gap-2 text-sm text-slate-300">
+                            <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Kolon 1</span>
+                            <input [ngModel]="block.columns[0]" (ngModelChange)="updateTableColumn(0, $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
+                          </label>
+                          <label class="grid gap-2 text-sm text-slate-300">
+                            <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Kolon 2</span>
+                            <input [ngModel]="block.columns[1]" (ngModelChange)="updateTableColumn(1, $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
+                          </label>
+                        </div>
+
+                        <div class="rounded-2xl border border-white/10 bg-slate-900/40 p-3">
+                          <div class="mb-3 flex items-center justify-between gap-3">
+                            <div>
+                              <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">Satirlar</p>
+                              <p class="mt-1 text-xs text-slate-400">Her satiri sol ve sag hucre olarak duzenleyin.</p>
+                            </div>
+                            <button type="button" (click)="addTableRow()" class="rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold text-cyan-100">Satir Ekle</button>
+                          </div>
+
+                          <div class="space-y-3">
+                            @for (rowIndex of tableRowIndexes(); track rowIndex) {
+                              <div class="rounded-2xl border border-white/10 bg-slate-950/50 p-3">
+                                <div class="mb-3 flex items-center justify-between gap-3">
+                                  <strong class="text-sm text-white">Satir {{ rowIndex + 1 }}</strong>
+                                  <button type="button" (click)="removeTableRow(rowIndex)" class="rounded-xl border border-rose-300/20 bg-rose-300/10 px-3 py-2 text-xs font-semibold text-rose-100">Sil</button>
+                                </div>
+                                <div class="grid gap-3">
+                                  <label class="grid gap-2 text-sm text-slate-300">
+                                    <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Sol hucre</span>
+                                    <input [ngModel]="block.rows[rowIndex].label" (ngModelChange)="updateTableRow(rowIndex, 'label', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
+                                  </label>
+                                  <label class="grid gap-2 text-sm text-slate-300">
+                                    <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Sag hucre</span>
+                                    <input [ngModel]="block.rows[rowIndex].value" (ngModelChange)="updateTableRow(rowIndex, 'value', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
+                                  </label>
+                                </div>
+                              </div>
+                            }
+                          </div>
+                        </div>
+                      </div>
+                    </details>
+                  }
+
+                  @if (block.type === 'widget') {
+                    <details open class="rounded-2xl border border-white/10 bg-slate-950/40 p-3">
+                      <summary class="cursor-pointer list-none text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">Component Ozellikleri</summary>
+                      <div class="mt-3 grid gap-3">
+                    <label class="grid gap-2 text-sm text-slate-300">
+                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Alt baslik</span>
+                      <input [ngModel]="block.subtitle" (ngModelChange)="updateBlockField('subtitle', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
+                    </label>
+                    <app-rich-text-editor label="Aciklama" [value]="block.body" (valueChange)="updateBlockField('body', $event)" />
+                    <div class="grid grid-cols-2 gap-3">
+                      <label class="grid gap-2 text-sm text-slate-300">
+                        <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Deger</span>
+                        <input type="number" [ngModel]="block.value" (ngModelChange)="updateBlockNumber('value', +$event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
+                      </label>
+                      @if (shouldShowWidgetImageField(block.widgetKind)) {
+                        <label class="grid gap-2 text-sm text-slate-300">
+                          <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Image URL</span>
+                          <input [ngModel]="block.imageUrl" (ngModelChange)="updateBlockField('imageUrl', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
+                        </label>
+                      }
+                    </div>
+                    <label class="grid gap-2 text-sm text-slate-300">
+                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Variant</span>
+                      <select [ngModel]="block.variant" (ngModelChange)="updateBlockField('variant', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50">
+                        @for (variant of widgetVariants(block.widgetKind); track variant) {
+                          <option [value]="variant">{{ variant }}</option>
+                        }
+                      </select>
+                    </label>
+                    <div class="rounded-2xl border border-white/10 bg-slate-900/40 p-3">
+                      <div class="mb-3 flex items-center justify-between gap-3">
+                        <div>
+                          <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">Elemanlar</p>
+                          <p class="mt-1 text-xs text-slate-400">Her elemani ayri ayri duzenleyin</p>
+                        </div>
+                        <button type="button" (click)="addWidgetRow()" class="rounded-xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-semibold text-cyan-100">Eleman Ekle</button>
+                      </div>
+
+                      <div class="space-y-3">
+                        @for (rowIndex of widgetRowIndexes(); track rowIndex) {
+                          <div class="rounded-2xl border border-white/10 bg-slate-950/50 p-3">
+                            <div class="mb-3 flex items-center justify-between gap-3">
+                              <strong class="text-sm text-white">Eleman {{ rowIndex + 1 }}</strong>
+                              <button type="button" (click)="removeWidgetRow(rowIndex)" class="rounded-xl border border-rose-300/20 bg-rose-300/10 px-3 py-2 text-xs font-semibold text-rose-100">Sil</button>
+                            </div>
+
+                            <div class="grid gap-3">
+                              <label class="grid gap-2 text-sm text-slate-300">
+                                <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                                  {{
+                                    isWidgetKind('charts')
+                                      ? 'Etiket'
+                                      : isFormWidget(block.widgetKind)
+                                        ? 'Alan etiketi'
+                                        : isNavigationWidget(block.widgetKind)
+                                          ? 'Menu metni'
+                                          : isMediaWidget(block.widgetKind)
+                                            ? 'Baslik'
+                                            : isWidgetKind('accordion')
+                                              ? 'Baslik'
+                                              : 'Eleman adi'
+                                  }}
+                                </span>
+                                <input
+                                  [ngModel]="block.items[rowIndex]"
+                                  (ngModelChange)="updateWidgetRowTitle(rowIndex, $event)"
+                                  class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
+                                />
+                              </label>
+
+                              @if (isWidgetKind('accordion') || isWidgetKind('tabs')) {
+                                <app-rich-text-editor
+                                  [label]="isWidgetKind('accordion') ? 'Icerik' : 'Panel icerigi'"
+                                  [value]="block.detailItems[rowIndex] || ''"
+                                  (valueChange)="updateWidgetRowDetail(rowIndex, $event)"
+                                />
+                              }
+
+                              @if (isFormWidget(block.widgetKind)) {
+                                <div class="grid grid-cols-2 gap-3">
+                                  <label class="grid gap-2 text-sm text-slate-300">
+                                    <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Alan tipi</span>
+                                    <select
+                                      [ngModel]="block.detailItems[rowIndex] || (block.widgetKind === 'forms' ? 'text' : block.widgetKind)"
+                                      (ngModelChange)="updateWidgetRowDetail(rowIndex, $event)"
+                                      class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
+                                    >
+                                      @for (fieldType of formFieldOptions; track fieldType) {
+                                        <option [value]="fieldType">{{ fieldType }}</option>
+                                      }
+                                    </select>
+                                  </label>
+                                  <label class="grid gap-2 text-sm text-slate-300">
+                                    <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Placeholder</span>
+                                    <input
+                                      [ngModel]="block.linkUrls[rowIndex] || ''"
+                                      (ngModelChange)="updateWidgetRowLinkUrl(rowIndex, $event)"
+                                      class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
+                                    />
+                                  </label>
+                                </div>
+                              }
+
+                              @if (isWidgetKind('charts')) {
+                                <label class="grid gap-2 text-sm text-slate-300">
+                                  <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Deger</span>
+                                  <input
+                                    type="number"
+                                    [ngModel]="block.numericValues[rowIndex]"
+                                    (ngModelChange)="updateWidgetRowValue(rowIndex, +$event)"
+                                    class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
+                                  />
+                                </label>
+                              }
+
+                              @if (isMediaWidget(block.widgetKind)) {
+                                <label class="grid gap-2 text-sm text-slate-300">
+                                  <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                                    {{ isWidgetKind('video') ? 'Poster URL' : 'Media URL' }}
+                                  </span>
+                                  <input
+                                    [ngModel]="block.mediaUrls[rowIndex] || ''"
+                                    (ngModelChange)="updateWidgetRowMediaUrl(rowIndex, $event)"
+                                    class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
+                                  />
+                                </label>
+                                <app-rich-text-editor
+                                  label="Aciklama"
+                                  [value]="block.detailItems[rowIndex] || ''"
+                                  (valueChange)="updateWidgetRowDetail(rowIndex, $event)"
+                                  minHeightClass="min-h-[88px]"
+                                />
+                                <label class="grid gap-2 text-sm text-slate-300">
+                                  <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Tiklanacak link</span>
+                                  <input
+                                    [ngModel]="block.linkUrls[rowIndex] || ''"
+                                    (ngModelChange)="updateWidgetRowLinkUrl(rowIndex, $event)"
+                                    class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
+                                  />
+                                </label>
+                              }
+
+                              @if (isNavigationWidget(block.widgetKind) && !isWidgetKind('tabs')) {
+                                <div class="grid gap-3">
+                                  <label class="grid gap-2 text-sm text-slate-300">
+                                    <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Link URL</span>
+                                    <input
+                                      [ngModel]="block.linkUrls[rowIndex] || ''"
+                                      (ngModelChange)="updateWidgetRowLinkUrl(rowIndex, $event)"
+                                      class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
+                                    />
+                                  </label>
+                                  <app-rich-text-editor
+                                    label="Aciklama"
+                                    [value]="block.detailItems[rowIndex] || ''"
+                                    (valueChange)="updateWidgetRowDetail(rowIndex, $event)"
+                                    minHeightClass="min-h-[88px]"
+                                  />
+                                </div>
+                              }
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                    @if (isWidgetKind('accordion')) {
+                      <p class="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-3 text-sm text-cyan-100">
+                        Accordion elemanlari artik baslik + icerik olarak kart bazli duzenlenir.
+                      </p>
+                    }
+                    @if (isWidgetKind('charts')) {
+                      <p class="rounded-2xl border border-fuchsia-300/20 bg-fuchsia-300/10 px-4 py-3 text-sm text-fuchsia-100">
+                        Chart icin `variant` dropdown'undan `bar`, `line` veya `area` secilebilir. Her satirda etiket ve deger beraber girilir.
+                      </p>
+                    }
+                    @if (isWidgetKind('carousel')) {
+                      <p class="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
+                        Carousel artik slide bazli duzenlenir; her slide icin baslik, gorsel, aciklama ve baglanti verilebilir.
+                      </p>
+                    }
+                    @if (isFormWidget(block.widgetKind)) {
+                      <p class="rounded-2xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100">
+                        Form satirlari icin alan tipi ve placeholder ayri ayri secilebilir. `Forms` componenti artik karisik alanlar tasiyabilir.
+                      </p>
+                    }
+                    @if (isNavigationWidget(block.widgetKind) && !isWidgetKind('tabs')) {
+                      <p class="rounded-2xl border border-sky-300/20 bg-sky-300/10 px-4 py-3 text-sm text-sky-100">
+                        Navigation ogeleri kendi link ve aciklamalarini tasir; demo modunda menu secildiginde ilgili icerik degisir.
+                      </p>
+                    }
+                      </div>
+                    </details>
                   }
                 </div>
               } @else {
@@ -509,7 +974,7 @@
                   Duzenlemek icin once bir block secin.
                 </p>
               }
-            </section>
+            </details>
           </div>
         </aside>
       </div>

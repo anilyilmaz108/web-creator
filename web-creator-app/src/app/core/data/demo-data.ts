@@ -38,20 +38,51 @@ export const themePresets: ThemeConfig[] = [
     fontFamily: '"Manrope", "Segoe UI", sans-serif',
     headingFontFamily: '"Space Grotesk", "Segoe UI", sans-serif',
     surface: '#fffdf8',
+    surfaceAlt: '#f6efe0',
     background: '#f3ecdf',
     foreground: '#1f2937',
+    muted: '#6b7280',
     accent: '#d97706',
-    cardRadius: 24
+    accentSoft: '#f8d7a7',
+    border: '#ead7bc',
+    cardRadius: 24,
+    pageWidth: 1200,
+    sectionGap: 24,
+    shadowStyle: 'soft'
   },
   {
     name: 'Ocean Board',
     fontFamily: '"DM Sans", "Segoe UI", sans-serif',
     headingFontFamily: '"Sora", "Segoe UI", sans-serif',
     surface: '#f4fbff',
+    surfaceAlt: '#dff4fb',
     background: '#d8eef8',
     foreground: '#102a43',
+    muted: '#486581',
     accent: '#0f766e',
-    cardRadius: 20
+    accentSoft: '#b8f1eb',
+    border: '#b8d8e5',
+    cardRadius: 20,
+    pageWidth: 1200,
+    sectionGap: 24,
+    shadowStyle: 'medium'
+  },
+  {
+    name: 'Neon Slate',
+    fontFamily: '"DM Sans", "Segoe UI", sans-serif',
+    headingFontFamily: '"Space Grotesk", "Segoe UI", sans-serif',
+    surface: '#111827',
+    surfaceAlt: '#1f2937',
+    background: '#020617',
+    foreground: '#f8fafc',
+    muted: '#94a3b8',
+    accent: '#38bdf8',
+    accentSoft: '#1e3a5f',
+    border: '#334155',
+    cardRadius: 26,
+    pageWidth: 1280,
+    sectionGap: 28,
+    shadowStyle: 'strong'
   }
 ];
 
@@ -76,43 +107,153 @@ export const demoProjects: SiteProject[] = [
             type: 'hero',
             title: 'Hero',
             layout: 'split',
+            animation: 'fade-up',
+            fontStyle: 'normal',
+            textAlign: 'left',
+            linkLabel: 'Demo Talep Et',
+            linkUrl: 'https://example.com/demo',
+            linkTarget: '_blank',
+            backgroundColor: '#fffdf8',
+            textColor: '#1f2937',
+            accentColor: '#d97706',
+            widthPreset: 'full',
+            minHeight: 0,
             eyebrow: 'Creative website builder',
-            heading: 'Markanıza özel siteleri sürükle-bırak mantığıyla oluşturun.',
-            body: 'Admin panelinden bileşenleri seçin, sıralayın, temayı değiştirin ve web, tablet, mobil önizlemeleri canlı görün.',
-            primaryAction: 'Projeyi İncele',
-            secondaryAction: 'Demo İste',
-            imageUrl: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80'
+            heading: 'Markaniza ozel siteleri surukle-birak mantigiyla olusturun.',
+            body: 'Admin panelinden bilesenleri secin, siralayin, temayi degistirin ve web, tablet, mobil onizlemeleri canli gorun.',
+            buttons: [
+              {
+                id: 'hero-btn-1',
+                label: 'Projeyi Incele',
+                url: 'https://example.com/start',
+                target: '_blank',
+                style: 'solid'
+              },
+              {
+                id: 'hero-btn-2',
+                label: 'Demo Iste',
+                url: 'https://example.com/demo',
+                target: '_blank',
+                style: 'outline'
+              }
+            ],
+            primaryAction: 'Projeyi Incele',
+            secondaryAction: 'Demo Iste',
+            imageUrl:
+              'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80'
           },
           {
             id: 'block-features',
             type: 'features',
             title: 'Highlights',
             layout: 'grid-3',
+            animation: 'fade-in',
+            fontStyle: 'normal',
+            textAlign: 'left',
+            linkLabel: '',
+            linkUrl: '',
+            linkTarget: '_self',
+            backgroundColor: '#fffdf8',
+            textColor: '#1f2937',
+            accentColor: '#d97706',
+            widthPreset: 'full',
+            minHeight: 0,
             items: [
               {
                 title: 'Generic component library',
-                body: 'Yeni component tiplerini ileride sisteme kolayca ekleyebileceğiniz yapı.'
+                body: 'Yeni component tiplerini ileride sisteme kolayca ekleyebileceginiz yapi.'
               },
               {
                 title: 'Theme presets',
-                body: 'Hazır tema seçin veya renk, font ve radius değerlerini özelleştirin.'
+                body: 'Hazir tema secin veya renk, font, golge ve radius degerlerini ozellestirin.'
               },
               {
                 title: 'Publication review',
-                body: 'Admin yayına gönderir, superadmin belirli süreyle yayına alır.'
+                body: 'Admin yayina gonderir, superadmin belirli sureyle yayina alir.'
               }
             ]
+          },
+          {
+            id: 'block-widget-accordion',
+            type: 'widget',
+            title: 'SSS Accordion',
+            layout: 'stack',
+            animation: 'fade-up',
+            fontStyle: 'normal',
+            textAlign: 'left',
+            linkLabel: 'Tum sorular',
+            linkUrl: 'https://example.com/faq',
+            linkTarget: '_blank',
+            backgroundColor: '#fffdf8',
+            textColor: '#1f2937',
+            accentColor: '#d97706',
+            widthPreset: 'medium',
+            minHeight: 0,
+            widgetKind: 'accordion',
+            subtitle: 'Sik sorulan sorular',
+            body: 'Yayinlama, tema ozellestirme ve mobil gorunum gibi konulari acilir paneller icinde sunun.',
+            imageUrl: '',
+            items: ['Yayin sureci nasil isliyor?', 'Yeni componentleri nasil eklerim?', 'Firebase nasil baglanir?'],
+            detailItems: [
+              'Admin, projeyi superadmin onayina gonderir ve belirlenen sure boyunca yayinda kalir.',
+              'Katalog yapisina yeni widget tanimi eklenerek sistem buyutulebilir.',
+              'Firebase Auth, Firestore ve Storage sonraki asamada dogrudan baglanabilir.'
+            ],
+            numericValues: [72, 64, 90],
+            mediaUrls: [],
+            linkUrls: ['', '', ''],
+            value: 72,
+            variant: 'single'
+          },
+          {
+            id: 'block-widget-form',
+            type: 'widget',
+            title: 'Iletisim Formu',
+            layout: 'grid-2',
+            animation: 'slide-left',
+            fontStyle: 'normal',
+            textAlign: 'left',
+            linkLabel: 'Destek ekibi',
+            linkUrl: 'mailto:hello@example.com',
+            linkTarget: '_self',
+            backgroundColor: '#fffdf8',
+            textColor: '#1f2937',
+            accentColor: '#d97706',
+            widthPreset: 'full',
+            minHeight: 0,
+            widgetKind: 'forms',
+            subtitle: 'Lead toplama alani',
+            body: 'Input, select, textarea, checkbox ve dosya yukleme alanlarini formlar kategorisiyle ekleyin.',
+            imageUrl: '',
+            items: ['Ad Soyad', 'E-posta', 'Sektor', 'Mesaj'],
+            detailItems: ['text', 'email', 'select', 'textarea'],
+            numericValues: [25, 50, 75, 100],
+            mediaUrls: [],
+            linkUrls: ['Adinizi girin', 'ornek@site.com', 'Sektor secin', 'Mesajinizi yazin'],
+            value: 48,
+            variant: 'stacked'
           },
           {
             id: 'block-pricing',
             type: 'table',
             title: 'Pricing Table',
             layout: 'stack',
-            columns: ['Plan', 'Aylık', 'Destek'],
+            animation: 'zoom-in',
+            fontStyle: 'normal',
+            textAlign: 'left',
+            linkLabel: '',
+            linkUrl: '',
+            linkTarget: '_self',
+            backgroundColor: '#fffdf8',
+            textColor: '#1f2937',
+            accentColor: '#d97706',
+            widthPreset: 'full',
+            minHeight: 0,
+            columns: ['Plan', 'Aylik', 'Destek'],
             rows: [
               { label: 'Starter', value: '499 TL / E-posta' },
-              { label: 'Growth', value: '899 TL / Öncelikli' },
-              { label: 'Scale', value: '1499 TL / Özel kanal' }
+              { label: 'Growth', value: '899 TL / Oncelikli' },
+              { label: 'Scale', value: '1499 TL / Ozel kanal' }
             ]
           },
           {
@@ -120,9 +261,23 @@ export const demoProjects: SiteProject[] = [
             type: 'cta',
             title: 'CTA',
             layout: 'stack',
-            heading: 'Sitenizi dakikalar içinde tasarlamaya başlayın.',
-            body: 'Tüm bileşenleri panelden yönetin, düzeni değiştirin ve yayın öncesi onaya gönderin.',
-            actionLabel: "Builder'i Ac"
+            animation: 'fade-up',
+            fontStyle: 'bold',
+            textAlign: 'center',
+            linkLabel: 'Builderi Ac',
+            linkUrl: 'https://example.com/start',
+            linkTarget: '_blank',
+            backgroundColor: '#fffdf8',
+            textColor: '#1f2937',
+            accentColor: '#d97706',
+            widthPreset: 'medium',
+            minHeight: 0,
+            heading: 'Sitenizi dakikalar icinde tasarlamaya baslayin.',
+            body: 'Tum bilesenleri panelden yonetin, duzeni degistirin ve yayin oncesi onaya gonderin.',
+            actionLabel: "Builder'i Ac",
+            actionUrl: 'https://example.com/start',
+            actionTarget: '_blank',
+            actionStyle: 'solid'
           }
         ]
       },
@@ -136,7 +291,51 @@ export const demoProjects: SiteProject[] = [
             type: 'text',
             title: 'Service Intro',
             layout: 'stack',
-            body: 'Bu sayfa, kullanıcıların yeni route oluşturup farklı içerikleri farklı sayfalara dağıtabildiğini göstermek için eklendi.'
+            animation: 'fade-in',
+            fontStyle: 'italic',
+            textAlign: 'left',
+            linkLabel: 'Portfoyu Gor',
+            linkUrl: 'https://example.com/portfolio',
+            linkTarget: '_blank',
+            backgroundColor: '#fffdf8',
+            textColor: '#1f2937',
+            accentColor: '#d97706',
+            widthPreset: 'medium',
+            minHeight: 0,
+            body: 'Bu sayfa, kullanicilarin yeni route olusturup farkli icerikleri farkli sayfalara dagitabildigini gostermek icin eklendi.'
+          },
+          {
+            id: 'block-widget-gallery',
+            type: 'widget',
+            title: 'Proje Galerisi',
+            layout: 'grid-3',
+            animation: 'zoom-in',
+            fontStyle: 'normal',
+            textAlign: 'left',
+            linkLabel: 'Tum galeriyi ac',
+            linkUrl: 'https://example.com/gallery',
+            linkTarget: '_blank',
+            backgroundColor: '#fffdf8',
+            textColor: '#1f2937',
+            accentColor: '#d97706',
+            widthPreset: 'full',
+            minHeight: 0,
+            widgetKind: 'gallery',
+            subtitle: 'Referanslar',
+            body: 'Galeriler, carouseller ve image componentleri ile projelerinizi vitrine cikarabilirsiniz.',
+            imageUrl:
+              'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
+            items: ['Kurumsal Site', 'Landing Page', 'Etkinlik Sayfasi'],
+            detailItems: ['Kurumsal paket', 'Kampanya paketi', 'Etkinlik paketi'],
+            numericValues: [24, 48, 72],
+            mediaUrls: [
+              'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
+              'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
+              'https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=1200&q=80'
+            ],
+            linkUrls: ['/kurumsal-site', '/landing-page', '/etkinlik-sayfasi'],
+            value: 84,
+            variant: 'masonry'
           }
         ]
       }
