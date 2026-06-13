@@ -356,10 +356,6 @@ export class BuilderComponent {
     return ['navbar', 'mega-menu', 'dropdowns', 'sidebar', 'bottom-navigation'].includes(kind);
   }
 
-  isRichEditorWidget(kind: string): boolean {
-    return kind === 'wysiwyg';
-  }
-
   isQrWidget(kind: string): boolean {
     return kind === 'qr-code';
   }

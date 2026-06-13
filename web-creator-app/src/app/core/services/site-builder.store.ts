@@ -419,8 +419,6 @@ export class SiteBuilderStore {
       case 'buttons':
       case 'button-group':
         return ['Basla', 'Demo Al', 'Fiyatlari Gor'];
-      case 'wysiwyg':
-        return ['Baslik', 'Metin', 'Buton'];
       case 'qr-code':
         return ['Siteye Git'];
       case 'forms':
@@ -457,8 +455,6 @@ export class SiteBuilderStore {
         return ['Anil Yilmaz', 'Aktif', 'Growth'];
       case 'timeline':
         return ['Ihtiyac analizi tamamlandi.', 'Arayuz ve tema kararlandi.', 'Yayin ve son kontroller yapildi.'];
-      case 'wysiwyg':
-        return ['<h3>Zengin icerik</h3><p>Metin bloklarini burada canli bicimde gosterebilirsiniz.</p>'];
       case 'dropdowns':
       case 'mega-menu':
       case 'navbar':
@@ -528,8 +524,6 @@ export class SiteBuilderStore {
         return ['Yonetici', 'Canli', 'Aylik'];
       case 'qr-code':
         return ['https://example.com/qr-destination'];
-      case 'wysiwyg':
-        return ['https://example.com/read-more'];
       default:
         return [];
     }

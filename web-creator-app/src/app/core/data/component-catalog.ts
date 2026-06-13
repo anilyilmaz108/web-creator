@@ -74,6 +74,5 @@ export const componentCatalog: CatalogItem[] = [
   { kind: 'text', label: 'Text', category: 'Typography', hint: 'Serbest metin kutusu' },
   { kind: 'hr', label: 'HR', category: 'Layout', hint: 'Ayirici cizgi' },
   { kind: 'charts', label: 'Charts', category: 'Plugins', hint: 'Grafik sunumu' },
-  { kind: 'datatables', label: 'Datatables', category: 'Plugins', hint: 'Gelismis veri tablosu' },
-  { kind: 'wysiwyg', label: 'WYSIWYG', category: 'Plugins', hint: 'Zengin editor alani' }
+  { kind: 'datatables', label: 'Datatables', category: 'Plugins', hint: 'Gelismis veri tablosu' }
 ];

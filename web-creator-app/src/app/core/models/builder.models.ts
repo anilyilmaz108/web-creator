@@ -76,8 +76,7 @@ export type WidgetKind =
   | 'text'
   | 'hr'
   | 'charts'
-  | 'datatables'
-  | 'wysiwyg';
+  | 'datatables';
 
 export interface ThemeConfig {
   name: string;

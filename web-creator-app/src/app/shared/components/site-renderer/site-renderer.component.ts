@@ -193,7 +193,6 @@ export class SiteRendererComponent {
       case 'select':
         return 'select';
       case 'textarea':
-      case 'wysiwyg':
         return 'textarea';
       case 'timepicker':
         return 'time';
@@ -225,6 +224,39 @@ export class SiteRendererComponent {
   ratingStars(value: number): string {
     const stars = Math.max(1, Math.min(5, Math.round(value / 20)));
     return '★'.repeat(stars);
+  }
+
+  chartValue(block: WidgetBlock, index: number): number {
+    return Math.max(0, Math.min(100, block.numericValues[index] ?? 0));
+  }
+
+  chartHeight(block: WidgetBlock, index: number): number {
+    return Math.max(this.chartValue(block, index), 8);
+  }
+
+  chartPointX(index: number, total: number): number {
+    if (total <= 1) {
+      return 50;
+    }
+
+    return 10 + (index * 80) / (total - 1);
+  }
+
+  chartPointY(value: number): number {
+    return 92 - Math.max(0, Math.min(100, value)) * 0.74;
+  }
+
+  chartPolyline(block: WidgetBlock): string {
+    const total = Math.max(block.items.length, 1);
+    return block.items
+      .map((_, index) => `${this.chartPointX(index, total)},${this.chartPointY(this.chartValue(block, index))}`)
+      .join(' ');
+  }
+
+  chartArea(block: WidgetBlock): string {
+    const total = Math.max(block.items.length, 1);
+    const line = this.chartPolyline(block);
+    return `10,92 ${line} ${this.chartPointX(total - 1, total)},92`;
   }
 
   currentIndex(blockId: string): number {

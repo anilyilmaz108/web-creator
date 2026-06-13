@@ -608,15 +608,57 @@
                 </div>
               } @else if (block.widgetKind === 'charts') {
                 <div class="mt-5 rounded-[22px] border p-4" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
-                  <div class="flex h-56 items-end gap-4">
-                    @for (item of block.items; track item; let idx = $index) {
-                      <div class="flex flex-1 flex-col items-center gap-2">
-                        <div class="w-full rounded-t-xl" [style.height.%]="block.numericValues[idx] || (block.variant === 'line' ? 15 + idx * 12 : 35 + idx * 18)" [style.background]="block.accentColor || theme.accent"></div>
-                        <span class="text-xs font-semibold">{{ block.numericValues[idx] || 0 }}</span>
-                        <span class="text-xs" [style.color]="theme.muted">{{ item }}</span>
+                  @if (block.variant === 'bar') {
+                    <div class="flex h-64 items-end gap-4">
+                      @for (item of block.items; track item; let idx = $index) {
+                        <div class="flex flex-1 flex-col items-center gap-2">
+                          <span class="text-xs font-semibold">{{ chartValue(block, idx) }}</span>
+                          <div class="flex h-48 w-full items-end rounded-[18px] bg-white/40 px-2 pb-2">
+                            <div
+                              class="w-full rounded-[14px] shadow-lg"
+                              [style.height.%]="chartHeight(block, idx)"
+                              [style.background]="block.accentColor || theme.accent"
+                            ></div>
+                          </div>
+                          <span class="text-center text-xs" [style.color]="theme.muted">{{ item }}</span>
+                        </div>
+                      }
+                    </div>
+                  } @else {
+                    <div class="rounded-[18px] bg-white/40 p-4">
+                      <svg viewBox="0 0 100 100" class="h-64 w-full overflow-visible">
+                        <line x1="8" y1="92" x2="96" y2="92" [attr.stroke]="theme.border" stroke-width="1.5"></line>
+                        <line x1="10" y1="10" x2="10" y2="92" [attr.stroke]="theme.border" stroke-width="1.5"></line>
+                        @if (block.variant === 'area') {
+                          <polygon [attr.points]="chartArea(block)" [attr.fill]="(block.accentColor || theme.accent) + '33'"></polygon>
+                        }
+                        <polyline
+                          [attr.points]="chartPolyline(block)"
+                          fill="none"
+                          [attr.stroke]="block.accentColor || theme.accent"
+                          stroke-width="3"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        ></polyline>
+                        @for (item of block.items; track item; let idx = $index) {
+                          <circle
+                            [attr.cx]="chartPointX(idx, block.items.length)"
+                            [attr.cy]="chartPointY(chartValue(block, idx))"
+                            r="2.8"
+                            [attr.fill]="block.accentColor || theme.accent"
+                          ></circle>
+                        }
+                      </svg>
+                      <div class="mt-4 grid gap-3 md:grid-cols-3">
+                        @for (item of block.items; track item; let idx = $index) {
+                          <div class="rounded-2xl px-3 py-2" [style.background]="theme.surface">
+                            <strong class="block text-sm">{{ item }}</strong>
+                            <span class="text-xs" [style.color]="theme.muted">{{ chartValue(block, idx) }}</span>
+                          </div>
+                        }
                       </div>
-                    }
-                  </div>
+                    </div>
+                  }
                 </div>
               } @else if (block.widgetKind === 'datatables' || block.widgetKind === 'tables') {
                 <div class="mt-5 overflow-hidden rounded-[22px] border" [style.borderColor]="theme.border">
@@ -635,22 +677,6 @@
                       <div class="px-4 py-3 text-sm" [style.color]="block.accentColor || theme.accent">{{ block.linkUrls[idx] || 'Durum' }}</div>
                     }
                   </div>
-                </div>
-              } @else if (block.widgetKind === 'wysiwyg') {
-                <div class="mt-5 overflow-hidden rounded-[22px] border" [style.borderColor]="theme.border">
-                  <div class="flex flex-wrap gap-2 border-b px-4 py-3" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
-                    <span class="rounded-full px-3 py-1 text-xs font-semibold" [style.background]="theme.surface">B</span>
-                    <span class="rounded-full px-3 py-1 text-xs font-semibold" [style.background]="theme.surface">I</span>
-                    <span class="rounded-full px-3 py-1 text-xs font-semibold" [style.background]="theme.surface">Link</span>
-                  </div>
-                  <div class="p-5 prose prose-slate max-w-none" [innerHTML]="block.detailItems[0] || block.body"></div>
-                  @if (block.linkUrls[0]) {
-                    <div class="border-t px-5 py-4" [style.borderColor]="theme.border">
-                      <a class="text-sm font-semibold no-underline" [href]="block.linkUrls[0]" target="_blank" [style.color]="block.accentColor || theme.accent">
-                        Devam linki
-                      </a>
-                    </div>
-                  }
                 </div>
               } @else {
                 <div class="mt-5 overflow-hidden rounded-[22px] border" [style.borderColor]="theme.border">

@@ -911,22 +911,6 @@
                                 </label>
                               }
 
-                              @if (isRichEditorWidget(block.widgetKind)) {
-                                <app-rich-text-editor
-                                  label="Editor icerigi"
-                                  [value]="block.detailItems[rowIndex] || block.body"
-                                  (valueChange)="updateWidgetRowDetail(rowIndex, $event)"
-                                />
-                                <label class="grid gap-2 text-sm text-slate-300">
-                                  <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Aksiyon linki</span>
-                                  <input
-                                    [ngModel]="block.linkUrls[rowIndex] || ''"
-                                    (ngModelChange)="updateWidgetRowLinkUrl(rowIndex, $event)"
-                                    class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
-                                  />
-                                </label>
-                              }
-
                               @if (isFormWidget(block.widgetKind)) {
                                 <div class="grid grid-cols-2 gap-3">
                                   <label class="grid gap-2 text-sm text-slate-300">
@@ -1129,11 +1113,6 @@
                     @if (isDataTableWidget(block.widgetKind)) {
                       <p class="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
                         Datatable ve table widgetlari icin her kolon basligina karsilik ornek veri ve durum degeri girilebilir.
-                      </p>
-                    }
-                    @if (isRichEditorWidget(block.widgetKind)) {
-                      <p class="rounded-2xl border border-lime-300/20 bg-lime-300/10 px-4 py-3 text-sm text-lime-100">
-                        WYSIWYG widget'i editor icerigini rich text olarak saklar; preview'da mini editor gorunumuyle sunulur.
                       </p>
                     }
                     @if (isQrWidget(block.widgetKind)) {
