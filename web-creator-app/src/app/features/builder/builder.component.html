@@ -472,7 +472,7 @@
                       </select>
                     </label>
                     <label class="grid gap-2 text-sm text-slate-300">
-                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Animasyon</span>
+                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Blok animasyonu</span>
                       <select [ngModel]="block.animation" (ngModelChange)="updateBlockField('animation', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50">
                         @for (option of animationOptions; track option) {
                           <option [value]="option">{{ option }}</option>
@@ -480,6 +480,45 @@
                       </select>
                     </label>
                   </div>
+
+                  <div class="grid grid-cols-2 gap-3">
+                    <label class="grid gap-2 text-sm text-slate-300">
+                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Yazi animasyonu</span>
+                      <select [ngModel]="block.contentAnimation || 'none'" (ngModelChange)="updateBlockField('contentAnimation', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50">
+                        @for (option of animationOptions; track option) {
+                          <option [value]="option">{{ option }}</option>
+                        }
+                      </select>
+                    </label>
+                    <label class="grid gap-2 text-sm text-slate-300">
+                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Medya animasyonu</span>
+                      <select [ngModel]="block.mediaAnimation || 'none'" (ngModelChange)="updateBlockField('mediaAnimation', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50">
+                        @for (option of animationOptions; track option) {
+                          <option [value]="option">{{ option }}</option>
+                        }
+                      </select>
+                    </label>
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-3">
+                    <label class="grid gap-2 text-sm text-slate-300">
+                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Animasyon suresi</span>
+                      <input type="number" min="0" step="50" [ngModel]="block.animationDuration || 550" (ngModelChange)="updateBlockNumber('animationDuration', +$event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
+                    </label>
+                    <label class="grid gap-2 text-sm text-slate-300">
+                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Animasyon gecikmesi</span>
+                      <input type="number" min="0" step="50" [ngModel]="block.animationDelay || 0" (ngModelChange)="updateBlockNumber('animationDelay', +$event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
+                    </label>
+                  </div>
+
+                  <label class="grid gap-2 text-sm text-slate-300">
+                    <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Hover efekti</span>
+                    <select [ngModel]="block.hoverEffect || 'lift'" (ngModelChange)="updateBlockField('hoverEffect', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50">
+                      @for (option of hoverEffectOptions; track option) {
+                        <option [value]="option">{{ option }}</option>
+                      }
+                    </select>
+                  </label>
 
                   <div class="grid grid-cols-2 gap-3">
                     <label class="grid gap-2 text-sm text-slate-300">
@@ -547,6 +586,16 @@
                       <input [ngModel]="block.accentColor" (ngModelChange)="updateBlockField('accentColor', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
                     </label>
                   </div>
+
+                  <label class="grid gap-2 text-sm text-slate-300">
+                    <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Arka plan resmi</span>
+                    <input [ngModel]="block.backgroundImageUrl || ''" (ngModelChange)="updateBlockField('backgroundImageUrl', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" placeholder="https://..." />
+                  </label>
+
+                  <label class="grid gap-2 text-sm text-slate-300">
+                    <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Kaplama yogunlugu</span>
+                    <input type="number" min="0" max="90" [ngModel]="block.backgroundOverlay || 18" (ngModelChange)="updateBlockNumber('backgroundOverlay', +$event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
+                  </label>
 
                   <div class="flex flex-wrap gap-2">
                     @for (color of colorPalette; track color) {

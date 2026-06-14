@@ -29,6 +29,80 @@ body {
     linear-gradient(180deg, #0f172a 0%, #020617 100%);
 }
 
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 22px, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale3d(0.94, 0.94, 1);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale3d(1, 1, 1);
+  }
+}
+
+@keyframes slideLeft {
+  from {
+    opacity: 0;
+    transform: translate3d(28px, 0, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.block-hover-lift,
+.block-hover-grow,
+.block-hover-glow,
+.block-hover-tilt {
+  transition:
+    transform 220ms ease,
+    box-shadow 220ms ease,
+    filter 220ms ease;
+  transform-origin: center;
+}
+
+.block-hover-lift:hover {
+  transform: translateY(-8px);
+}
+
+.block-hover-grow:hover {
+  transform: scale(1.02);
+}
+
+.block-hover-glow:hover {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 28px 70px rgba(56, 189, 248, 0.22);
+  filter: saturate(1.06);
+}
+
+.block-hover-tilt:hover {
+  transform: perspective(1200px) rotateX(1.8deg) rotateY(-2.4deg) translateY(-4px);
+}
+
 button,
 input,
 select,

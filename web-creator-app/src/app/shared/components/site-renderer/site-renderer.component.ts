@@ -81,6 +81,43 @@ export class SiteRendererComponent {
     }[value];
   }
 
+  animationDuration(block: PageBlock): string | null {
+    const value = block.animationDuration ?? 550;
+    return value > 0 ? `${value}ms` : null;
+  }
+
+  animationDelay(block: PageBlock): string | null {
+    const value = block.animationDelay ?? 0;
+    return value > 0 ? `${value}ms` : null;
+  }
+
+  hoverEffectClass(block: PageBlock): string {
+    return {
+      none: '',
+      lift: 'block-hover-lift',
+      grow: 'block-hover-grow',
+      glow: 'block-hover-glow',
+      tilt: 'block-hover-tilt'
+    }[block.hoverEffect ?? 'lift'];
+  }
+
+  contentAnimationClass(block: PageBlock): string {
+    return this.animationClass(block.contentAnimation ?? 'none');
+  }
+
+  mediaAnimationClass(block: PageBlock): string {
+    return this.animationClass(block.mediaAnimation ?? 'none');
+  }
+
+  backgroundImageStyle(block: PageBlock): string | null {
+    if (!block.backgroundImageUrl) {
+      return null;
+    }
+
+    const overlayOpacity = Math.max(0, Math.min(90, block.backgroundOverlay ?? 18)) / 100;
+    return `linear-gradient(rgba(15,23,42,${overlayOpacity}), rgba(15,23,42,${overlayOpacity})), url(${block.backgroundImageUrl})`;
+  }
+
   widgetMode(kind: WidgetKind): 'content' | 'form' | 'media' | 'navigation' | 'feedback' | 'data' | 'utility' {
     if (
       [

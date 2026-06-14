@@ -8,6 +8,7 @@ import {
   ActionButtonStyle,
   AnimationPreset,
   FontStylePreset,
+  HoverEffectPreset,
   LayoutMode,
   PageBlock,
   TextAlignPreset,
@@ -60,6 +61,7 @@ export class BuilderComponent {
   readonly layoutOptions: LayoutMode[] = ['stack', 'split', 'grid-2', 'grid-3', 'grid-4'];
   readonly widthOptions: WidthPreset[] = ['full', 'wide', 'medium', 'narrow'];
   readonly animationOptions: AnimationPreset[] = ['none', 'fade-up', 'fade-in', 'zoom-in', 'slide-left'];
+  readonly hoverEffectOptions: HoverEffectPreset[] = ['none', 'lift', 'grow', 'glow', 'tilt'];
   readonly fontStyleOptions: FontStylePreset[] = ['normal', 'bold', 'italic', 'bold-italic'];
   readonly textAlignOptions: TextAlignPreset[] = ['left', 'center', 'right'];
   readonly buttonStyleOptions: ActionButtonStyle[] = ['solid', 'outline', 'ghost'];

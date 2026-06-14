@@ -14,8 +14,14 @@
   @for (block of page.blocks; track trackByBlockId($index, block)) {
     <article
       class="overflow-hidden border transition"
-      [ngClass]="[widthClass(block.widthPreset), animationClass(block.animation)]"
-      [style.background]="block.backgroundColor || theme.surface"
+      [ngClass]="[widthClass(block.widthPreset), animationClass(block.animation), hoverEffectClass(block)]"
+      [style.backgroundColor]="block.backgroundColor || theme.surface"
+      [style.backgroundImage]="backgroundImageStyle(block)"
+      [style.backgroundSize]="block.backgroundImageUrl ? 'cover' : null"
+      [style.backgroundPosition]="block.backgroundImageUrl ? 'center' : null"
+      [style.animationDuration]="animationDuration(block)"
+      [style.animationDelay]="animationDelay(block)"
+      [style.animationFillMode]="block.animation !== 'none' ? 'both' : null"
       [style.color]="block.textColor || theme.foreground"
       [style.borderColor]="selectedBlockId === block.id ? block.accentColor || theme.accent : theme.border"
       [style.borderRadius.px]="theme.cardRadius"
@@ -33,7 +39,7 @@
       @switch (block.type) {
         @case ('hero') {
           <div class="grid gap-8 p-6 md:p-8" [ngClass]="heroLayoutClass(block.layout)">
-            <div class="flex flex-col justify-center" [ngClass]="textAlignClass(block.textAlign)">
+            <div class="flex flex-col justify-center" [ngClass]="[textAlignClass(block.textAlign), contentAnimationClass(block)]">
               <span class="inline-flex w-fit rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.18em]" [style.background]="theme.surfaceAlt" [style.color]="block.accentColor || theme.accent">
                 <span [innerHTML]="block.eyebrow"></span>
               </span>
@@ -72,13 +78,13 @@
                 }
               </div>
             </div>
-            <div class="overflow-hidden rounded-[24px]" [style.background]="theme.surfaceAlt">
+            <div class="overflow-hidden rounded-[24px]" [ngClass]="mediaAnimationClass(block)" [style.background]="theme.surfaceAlt">
               <img class="h-full min-h-[280px] w-full object-cover" [src]="block.imageUrl" [alt]="block.title" />
             </div>
           </div>
         }
         @case ('text') {
-          <div class="flex p-6 md:p-8" [ngClass]="textAlignClass(block.textAlign)">
+          <div class="flex p-6 md:p-8" [ngClass]="[textAlignClass(block.textAlign), contentAnimationClass(block)]">
             <div class="max-w-3xl">
               <h2 class="text-2xl md:text-3xl" [ngClass]="fontStyleClass(block.fontStyle)" [style.fontFamily]="theme.headingFontFamily" [innerHTML]="block.title"></h2>
               <div class="mt-4 prose prose-slate max-w-none text-base leading-8" [style.color]="theme.muted" [innerHTML]="block.body"></div>
@@ -92,14 +98,14 @@
         }
         @case ('features') {
           <div class="p-6 md:p-8">
-            <div class="mb-5">
+            <div class="mb-5" [ngClass]="contentAnimationClass(block)">
               <h2 class="text-2xl md:text-3xl" [ngClass]="fontStyleClass(block.fontStyle)" [style.fontFamily]="theme.headingFontFamily" [innerHTML]="block.title"></h2>
             </div>
             <div class="grid gap-4" [ngClass]="featureGridClass(block.layout)">
               @for (item of block.items; track item.title) {
-                <div class="rounded-[22px] border p-5" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
+                <div class="rounded-[22px] border p-5" [ngClass]="contentAnimationClass(block)" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
                   @if (item.imageUrl) {
-                    <div class="mb-4 overflow-hidden rounded-[18px]">
+                    <div class="mb-4 overflow-hidden rounded-[18px]" [ngClass]="mediaAnimationClass(block)">
                       <img class="h-44 w-full object-cover" [src]="item.imageUrl" [alt]="item.title" />
                     </div>
                   }
@@ -116,7 +122,7 @@
           </div>
         }
         @case ('table') {
-          <div class="p-6 md:p-8">
+          <div class="p-6 md:p-8" [ngClass]="contentAnimationClass(block)">
             <h2 class="text-2xl md:text-3xl" [ngClass]="fontStyleClass(block.fontStyle)" [style.fontFamily]="theme.headingFontFamily" [innerHTML]="block.title"></h2>
             <div class="mt-5 overflow-hidden rounded-[22px] border" [style.borderColor]="theme.border">
               <table class="min-w-full border-collapse text-left">
@@ -147,7 +153,7 @@
           </div>
         }
         @case ('image') {
-          <figure class="p-6 md:p-8">
+          <figure class="p-6 md:p-8" [ngClass]="mediaAnimationClass(block)">
             @if (block.linkUrl) {
               <a class="block overflow-hidden rounded-[24px]" [href]="block.linkUrl" [target]="block.linkTarget">
                 <img class="h-full min-h-[320px] w-full object-cover" [src]="block.imageUrl" [alt]="block.altText || block.caption" />
@@ -167,7 +173,7 @@
           </figure>
         }
         @case ('cta') {
-          <div class="flex flex-col gap-4 p-6 md:p-8" [ngClass]="textAlignClass(block.textAlign)" [style.background]="'linear-gradient(135deg, ' + block.backgroundColor + ' 0%, ' + theme.surfaceAlt + ' 100%)'">
+          <div class="flex flex-col gap-4 p-6 md:p-8" [ngClass]="[textAlignClass(block.textAlign), contentAnimationClass(block)]" [style.background]="'linear-gradient(135deg, ' + block.backgroundColor + ' 0%, ' + theme.surfaceAlt + ' 100%)'">
             <h2 class="text-2xl md:text-3xl" [ngClass]="fontStyleClass(block.fontStyle)" [style.fontFamily]="theme.headingFontFamily" [innerHTML]="block.heading"></h2>
             <div class="prose prose-slate max-w-none text-base leading-7" [style.color]="theme.muted" [innerHTML]="block.body"></div>
             <div class="flex flex-wrap gap-3">
@@ -200,7 +206,7 @@
         @case ('widget') {
           @if (widgetMode(block.widgetKind) === 'content') {
             <div class="p-6 md:p-8">
-              <div [ngClass]="textAlignClass(block.textAlign)">
+              <div [ngClass]="[textAlignClass(block.textAlign), contentAnimationClass(block)]">
                 <span class="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]" [style.background]="theme.surfaceAlt" [style.color]="block.accentColor || theme.accent">
                   {{ block.subtitle || block.widgetKind }}
                 </span>
@@ -312,7 +318,7 @@
           }
           @if (widgetMode(block.widgetKind) === 'form') {
             <div class="p-6 md:p-8">
-              <div [ngClass]="textAlignClass(block.textAlign)">
+              <div [ngClass]="[textAlignClass(block.textAlign), contentAnimationClass(block)]">
                 <span class="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]" [style.background]="theme.surfaceAlt" [style.color]="block.accentColor || theme.accent">{{ block.subtitle || 'Form' }}</span>
                 <h2 class="mt-4 text-2xl md:text-3xl" [style.fontFamily]="theme.headingFontFamily" [innerHTML]="block.title"></h2>
                 <div class="mt-3 prose prose-slate max-w-none text-base leading-7" [style.color]="theme.muted" [innerHTML]="block.body"></div>
@@ -407,12 +413,12 @@
           }
           @if (widgetMode(block.widgetKind) === 'media') {
             <div class="p-6 md:p-8">
-              <div [ngClass]="textAlignClass(block.textAlign)">
+              <div [ngClass]="[textAlignClass(block.textAlign), contentAnimationClass(block)]">
                 <h2 class="text-2xl md:text-3xl" [style.fontFamily]="theme.headingFontFamily" [innerHTML]="block.title"></h2>
                 <div class="mt-3 prose prose-slate max-w-none text-base leading-7" [style.color]="theme.muted" [innerHTML]="block.body"></div>
               </div>
               @if (block.widgetKind === 'carousel') {
-                <div class="mt-5 overflow-hidden rounded-[22px] border" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
+                <div class="mt-5 overflow-hidden rounded-[22px] border" [ngClass]="mediaAnimationClass(block)" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
                   <div class="relative">
                     <img class="h-64 w-full object-cover" [src]="widgetMediaUrl(block, currentIndex(block.id))" [alt]="block.items[currentIndex(block.id)] || block.title" />
                     <div class="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/40 px-4 py-3 text-white">
@@ -452,7 +458,7 @@
                 </div>
               } @else if (block.widgetKind === 'gallery' && block.variant === 'spotlight') {
                 <div class="mt-5 grid gap-4 lg:grid-cols-[1.4fr_0.8fr]">
-                  <div class="overflow-hidden rounded-[22px] border" [style.borderColor]="theme.border">
+                  <div class="overflow-hidden rounded-[22px] border" [ngClass]="mediaAnimationClass(block)" [style.borderColor]="theme.border">
                     <img class="h-full min-h-72 w-full object-cover" [src]="widgetMediaUrl(block, currentIndex(block.id))" [alt]="block.items[currentIndex(block.id)] || block.title" />
                   </div>
                   <div class="space-y-3">
