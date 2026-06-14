@@ -7,6 +7,7 @@ export type TextAlignPreset = 'left' | 'center' | 'right';
 export type WidthPreset = 'full' | 'wide' | 'medium' | 'narrow';
 export type LinkTarget = '_self' | '_blank';
 export type ActionButtonStyle = 'solid' | 'outline' | 'ghost';
+export type MenuOpenMode = 'click' | 'hover';
 export type BlockType = 'hero' | 'text' | 'features' | 'table' | 'image' | 'cta' | 'widget';
 
 export type WidgetKind =
@@ -178,6 +179,8 @@ export interface WidgetBlock extends BlockBase {
   actionLabel: string;
   actionUrl: string;
   actionStyle: ActionButtonStyle;
+  menuOpenMode: MenuOpenMode;
+  menuRadius: number;
   imageUrl: string;
   items: string[];
   detailItems: string[];

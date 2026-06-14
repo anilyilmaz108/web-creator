@@ -356,6 +356,8 @@ export class SiteBuilderStore {
       actionLabel: widgetKind === 'forms' ? 'Formu Gonder' : 'Aksiyon',
       actionUrl: widgetKind === 'forms' ? 'https://example.com/form-submit' : '',
       actionStyle: 'solid',
+      menuOpenMode: 'click',
+      menuRadius: 18,
       imageUrl:
         widgetKind === 'gallery' || widgetKind === 'video' || widgetKind === 'images'
           ? 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80'
@@ -597,6 +599,8 @@ export class SiteBuilderStore {
         actionLabel: widget.actionLabel ?? (widget.widgetKind === 'forms' ? 'Formu Gonder' : 'Aksiyon'),
         actionUrl: widget.actionUrl ?? '',
         actionStyle: widget.actionStyle ?? 'solid',
+        menuOpenMode: widget.menuOpenMode ?? 'click',
+        menuRadius: widget.menuRadius ?? 18,
         imageUrl: widget.imageUrl ?? '',
         items: widget.items ?? [],
         detailItems: widget.detailItems ?? [],

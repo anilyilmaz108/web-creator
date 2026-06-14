@@ -204,6 +204,8 @@ export const demoProjects: SiteProject[] = [
             actionLabel: 'Detay',
             actionUrl: '',
             actionStyle: 'outline',
+            menuOpenMode: 'click',
+            menuRadius: 18,
             imageUrl: '',
             items: ['Yayin sureci nasil isliyor?', 'Yeni componentleri nasil eklerim?', 'Firebase nasil baglanir?'],
             detailItems: [
@@ -239,6 +241,8 @@ export const demoProjects: SiteProject[] = [
             actionLabel: 'Teklif Al',
             actionUrl: 'https://example.com/offer',
             actionStyle: 'solid',
+            menuOpenMode: 'click',
+            menuRadius: 18,
             imageUrl: '',
             items: ['Ad Soyad', 'E-posta', 'Sektor', 'Mesaj'],
             detailItems: ['text', 'email', 'select', 'textarea'],
@@ -341,6 +345,8 @@ export const demoProjects: SiteProject[] = [
             actionLabel: 'Detay',
             actionUrl: '',
             actionStyle: 'outline',
+            menuOpenMode: 'click',
+            menuRadius: 18,
             imageUrl:
               'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
             items: ['Kurumsal Site', 'Landing Page', 'Etkinlik Sayfasi'],

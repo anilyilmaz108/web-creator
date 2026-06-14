@@ -227,6 +227,71 @@ export class SiteRendererComponent {
     return parsed.length ? parsed : [block.items[index] || 'Secenek 1'];
   }
 
+  widgetMenuChildren(block: WidgetBlock, index: number): Array<{ label: string; url: string }> {
+    const raw = block.mediaUrls[index] ?? '';
+    const parsed = raw
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const [label, url = ''] = line.split('::');
+        return { label: label.trim(), url: url.trim() };
+      })
+      .filter((item) => item.label);
+
+    return parsed;
+  }
+
+  menuRadius(block: WidgetBlock): number {
+    return Math.max(0, block.menuRadius || this.theme.cardRadius || 18);
+  }
+
+  menuSubRadius(block: WidgetBlock): number {
+    return Math.max(0, this.menuRadius(block) - 6);
+  }
+
+  menuInnerRadius(block: WidgetBlock, offset = 0): number {
+    return Math.max(0, this.menuSubRadius(block) + offset);
+  }
+
+  menuUsesHover(block: WidgetBlock): boolean {
+    return block.menuOpenMode === 'hover';
+  }
+
+  isMenuOpen(block: WidgetBlock, index: number): boolean {
+    return this.widgetState()[block.id] === index;
+  }
+
+  openMenu(block: WidgetBlock, index: number): void {
+    if (!this.interactive) {
+      return;
+    }
+
+    if (this.menuUsesHover(block)) {
+      this.setIndex(block.id, index);
+      return;
+    }
+
+    const current = this.widgetState()[block.id];
+    this.widgetState.update((state) => ({ ...state, [block.id]: current === index ? -1 : index }));
+  }
+
+  hoverMenu(block: WidgetBlock, index: number): void {
+    if (!this.interactive || !this.menuUsesHover(block)) {
+      return;
+    }
+
+    this.setIndex(block.id, index);
+  }
+
+  closeHoverMenu(block: WidgetBlock): void {
+    if (!this.interactive || !this.menuUsesHover(block)) {
+      return;
+    }
+
+    this.setIndex(block.id, -1);
+  }
+
   widgetMediaUrl(block: WidgetBlock, index: number): string {
     return block.mediaUrls[index] || block.imageUrl;
   }

@@ -373,6 +373,66 @@ export class BuilderComponent {
     return ['select', 'checkbox', 'radio'].includes(type);
   }
 
+  menuChildIndexes(rowIndex: number): number[] {
+    return Array.from({ length: this.parseMenuChildren(this.widgetRowMediaValue(rowIndex)).length }, (_, index) => index);
+  }
+
+  menuChildLabel(rowIndex: number, childIndex: number): string {
+    return this.parseMenuChildren(this.widgetRowMediaValue(rowIndex))[childIndex]?.label ?? '';
+  }
+
+  menuChildLink(rowIndex: number, childIndex: number): string {
+    return this.parseMenuChildren(this.widgetRowMediaValue(rowIndex))[childIndex]?.url ?? '';
+  }
+
+  addMenuChild(rowIndex: number): void {
+    const children = [...this.parseMenuChildren(this.widgetRowMediaValue(rowIndex)), { label: 'Alt menu', url: '' }];
+    this.updateWidgetRowMediaUrl(rowIndex, this.serializeMenuChildren(children));
+  }
+
+  updateMenuChild(rowIndex: number, childIndex: number, field: 'label' | 'url', value: string): void {
+    const children = this.parseMenuChildren(this.widgetRowMediaValue(rowIndex)).map((child, index) =>
+      index === childIndex ? { ...child, [field]: value } : child
+    );
+    this.updateWidgetRowMediaUrl(rowIndex, this.serializeMenuChildren(children));
+  }
+
+  removeMenuChild(rowIndex: number, childIndex: number): void {
+    const children = this.parseMenuChildren(this.widgetRowMediaValue(rowIndex)).filter((_, index) => index !== childIndex);
+    this.updateWidgetRowMediaUrl(rowIndex, this.serializeMenuChildren(children));
+  }
+
+  private widgetRowMediaValue(index: number): string {
+    const block = this.selectedBlock();
+    if (!block || block.type !== 'widget') {
+      return '';
+    }
+
+    return block.mediaUrls[index] || '';
+  }
+
+  private parseMenuChildren(raw: string): Array<{ label: string; url: string }> {
+    if (!raw.trim()) {
+      return [];
+    }
+
+    return raw
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const [label, url = ''] = line.split('::');
+        return { label: label.trim(), url: url.trim() };
+      });
+  }
+
+  private serializeMenuChildren(children: Array<{ label: string; url: string }>): string {
+    return children
+      .filter((child) => child.label.trim() || child.url.trim())
+      .map((child) => `${child.label.trim()}::${child.url.trim()}`)
+      .join('\n');
+  }
+
   shouldShowGenericLinkFields(block: PageBlock): boolean {
     return block.type === 'text' || block.type === 'widget';
   }
