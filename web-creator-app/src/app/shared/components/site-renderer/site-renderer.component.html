@@ -379,22 +379,41 @@
                             Git
                           </a>
                         }
+                        <button type="button" class="rounded-full bg-white/20 px-3 py-1 text-sm" (click)="previousIndex(block.id, block.items.length)">Prev</button>
                         <button type="button" class="rounded-full bg-white/20 px-3 py-1 text-sm" (click)="nextIndex(block.id, block.items.length)">Next</button>
                       </div>
                     </div>
+                  </div>
+                  <div class="grid grid-cols-3 gap-2 border-t p-3" [style.borderColor]="theme.border">
+                    @for (item of block.items; track item; let idx = $index) {
+                      <button
+                        type="button"
+                        class="overflow-hidden rounded-2xl border text-left transition"
+                        (click)="setIndex(block.id, idx)"
+                        [style.borderColor]="currentIndex(block.id) === idx ? (block.accentColor || theme.accent) : theme.border"
+                      >
+                        <img class="h-20 w-full object-cover" [src]="widgetMediaUrl(block, idx)" [alt]="item" />
+                      </button>
+                    }
                   </div>
                 </div>
               } @else if (block.widgetKind === 'gallery' && block.variant === 'spotlight') {
                 <div class="mt-5 grid gap-4 lg:grid-cols-[1.4fr_0.8fr]">
                   <div class="overflow-hidden rounded-[22px] border" [style.borderColor]="theme.border">
-                    <img class="h-full min-h-72 w-full object-cover" [src]="widgetMediaUrl(block, 0)" [alt]="block.items[0] || block.title" />
+                    <img class="h-full min-h-72 w-full object-cover" [src]="widgetMediaUrl(block, currentIndex(block.id))" [alt]="block.items[currentIndex(block.id)] || block.title" />
                   </div>
                   <div class="space-y-3">
                     @for (item of block.items; track item; let idx = $index) {
-                      <div class="rounded-[20px] border p-4" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
+                      <button
+                        type="button"
+                        class="block w-full rounded-[20px] border p-4 text-left transition"
+                        (click)="setIndex(block.id, idx)"
+                        [style.borderColor]="currentIndex(block.id) === idx ? (block.accentColor || theme.accent) : theme.border"
+                        [style.background]="theme.surfaceAlt"
+                      >
                         <strong>{{ item }}</strong>
                         <p class="mt-2 text-sm leading-7" [style.color]="theme.muted">{{ block.detailItems[idx] || block.body }}</p>
-                      </div>
+                      </button>
                     }
                   </div>
                 </div>
@@ -455,6 +474,25 @@
                   <div class="rounded-[22px] border p-5" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
                     <strong>{{ block.items[currentIndex(block.id)] || block.items[0] }}</strong>
                     <p class="mt-3 text-sm leading-7" [style.color]="theme.muted">{{ block.detailItems[currentIndex(block.id)] || block.body }}</p>
+                  </div>
+                </div>
+              } @else if (block.widgetKind === 'navbar') {
+                <div class="rounded-[22px] border p-4" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
+                  <div class="flex flex-wrap items-center justify-between gap-4">
+                    <strong class="text-lg" [style.fontFamily]="theme.headingFontFamily">{{ block.title }}</strong>
+                    <div class="flex flex-wrap items-center gap-2">
+                      @for (item of block.items; track item; let idx = $index) {
+                        <button
+                          type="button"
+                          class="rounded-full px-4 py-2 text-sm font-medium"
+                          (click)="setIndex(block.id, idx)"
+                          [style.background]="currentIndex(block.id) === idx ? (block.accentColor || theme.accent) : theme.surface"
+                          [style.color]="currentIndex(block.id) === idx ? '#ffffff' : theme.foreground"
+                        >
+                          {{ item }}
+                        </button>
+                      }
+                    </div>
                   </div>
                 </div>
               } @else if (block.widgetKind === 'breadcrumb') {

@@ -277,6 +277,12 @@ export class SiteRendererComponent {
     this.setIndex(blockId, next);
   }
 
+  previousIndex(blockId: string, length: number): void {
+    const safeLength = Math.max(length, 1);
+    const next = (this.currentIndex(blockId) - 1 + safeLength) % safeLength;
+    this.setIndex(blockId, next);
+  }
+
   isModalOpen(blockId: string): boolean {
     return this.modalState()[blockId] ?? false;
   }
