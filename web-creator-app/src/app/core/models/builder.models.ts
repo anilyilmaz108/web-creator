@@ -175,6 +175,9 @@ export interface WidgetBlock extends BlockBase {
   widgetKind: WidgetKind;
   subtitle: string;
   body: string;
+  actionLabel: string;
+  actionUrl: string;
+  actionStyle: ActionButtonStyle;
   imageUrl: string;
   items: string[];
   detailItems: string[];

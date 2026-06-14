@@ -360,6 +360,19 @@ export class BuilderComponent {
     return kind === 'qr-code';
   }
 
+  widgetRowType(index: number): string {
+    const block = this.selectedBlock();
+    if (!block || block.type !== 'widget') {
+      return 'text';
+    }
+
+    return block.detailItems[index] || (block.widgetKind === 'forms' ? 'text' : block.widgetKind);
+  }
+
+  isChoiceFieldType(type: string): boolean {
+    return ['select', 'checkbox', 'radio'].includes(type);
+  }
+
   shouldShowGenericLinkFields(block: PageBlock): boolean {
     return block.type === 'text' || block.type === 'widget';
   }

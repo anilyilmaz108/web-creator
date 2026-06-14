@@ -317,7 +317,7 @@
                 <h2 class="mt-4 text-2xl md:text-3xl" [style.fontFamily]="theme.headingFontFamily" [innerHTML]="block.title"></h2>
                 <div class="mt-3 prose prose-slate max-w-none text-base leading-7" [style.color]="theme.muted" [innerHTML]="block.body"></div>
               </div>
-              <div class="mt-5 grid gap-4" [ngClass]="featureGridClass(block.layout)">
+              <form class="mt-5 grid gap-4" [ngClass]="featureGridClass(block.layout)">
                 @for (item of block.items; track item; let idx = $index) {
                   <label class="grid gap-2 text-sm">
                     <span class="font-medium">{{ item }}</span>
@@ -325,19 +325,44 @@
                       <textarea class="min-h-24 rounded-[18px] border px-4 py-3 outline-none" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt"></textarea>
                     } @else if (widgetFieldType(block, idx) === 'select') {
                       <select class="rounded-[18px] border px-4 py-3 outline-none" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
-                        <option>{{ item }}</option>
+                        @for (choice of widgetChoices(block, idx); track choice) {
+                          <option>{{ choice }}</option>
+                        }
                       </select>
                     } @else if (widgetFieldType(block, idx) === 'checkbox' || widgetFieldType(block, idx) === 'radio') {
-                      <div class="flex items-center gap-3 rounded-[18px] border px-4 py-3" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
-                        <input [type]="widgetFieldType(block, idx) === 'radio' ? 'radio' : 'checkbox'" />
-                        <span [style.color]="theme.muted">{{ item }} secenegi</span>
+                      <div class="rounded-[18px] border px-4 py-3" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
+                        <div class="space-y-2">
+                          @for (choice of widgetChoices(block, idx); track choice) {
+                            <label class="flex items-center gap-3 text-sm">
+                              <input [type]="widgetFieldType(block, idx) === 'radio' ? 'radio' : 'checkbox'" />
+                              <span [style.color]="theme.muted">{{ choice }}</span>
+                            </label>
+                          }
+                        </div>
                       </div>
                     } @else if (widgetFieldType(block, idx) === 'range') {
                       <div class="rounded-[18px] border px-4 py-4" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
                         <input type="range" class="w-full" [value]="block.numericValues[idx] || block.value" />
+                        <div class="mt-2 text-right text-xs" [style.color]="theme.muted">{{ block.numericValues[idx] || block.value }}</div>
                       </div>
                     } @else if (widgetFieldType(block, idx) === 'file') {
                       <input type="file" class="rounded-[18px] border px-4 py-3 outline-none" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt" />
+                    } @else if (widgetFieldType(block, idx) === 'phone') {
+                      <div class="flex overflow-hidden rounded-[18px] border" [style.borderColor]="theme.border" [style.background]="theme.surfaceAlt">
+                        <span class="border-r px-4 py-3 text-sm" [style.borderColor]="theme.border" [style.color]="theme.muted">+90</span>
+                        <input
+                          class="min-w-0 flex-1 px-4 py-3 outline-none"
+                          [placeholder]="widgetPlaceholder(block, idx)"
+                          [style.background]="theme.surfaceAlt"
+                        />
+                      </div>
+                    } @else if (widgetFieldType(block, idx) === 'time' || widgetFieldType(block, idx) === 'date') {
+                      <input
+                        class="rounded-[18px] border px-4 py-3 outline-none"
+                        [type]="widgetFieldType(block, idx)"
+                        [style.borderColor]="theme.border"
+                        [style.background]="theme.surfaceAlt"
+                      />
                     } @else {
                       <input
                         class="rounded-[18px] border px-4 py-3 outline-none"
@@ -349,7 +374,35 @@
                     }
                   </label>
                 }
-              </div>
+                @if (block.widgetKind === 'forms') {
+                  <div class="md:col-span-2">
+                    @if (block.actionUrl) {
+                      <a
+                        class="inline-flex rounded-full px-5 py-3 text-sm font-semibold no-underline transition"
+                        [href]="block.actionUrl"
+                        [target]="block.linkTarget"
+                        [ngClass]="actionButtonClasses({ id: 'form-action', label: block.actionLabel, url: block.actionUrl, target: block.linkTarget, style: block.actionStyle })"
+                        [style.background]="block.actionStyle === 'solid' ? (block.accentColor || theme.accent) : 'transparent'"
+                        [style.borderColor]="block.actionStyle !== 'ghost' ? (block.accentColor || theme.accent) : 'transparent'"
+                        [style.color]="block.actionStyle === 'solid' ? '#ffffff' : (block.accentColor || theme.accent)"
+                      >
+                        {{ block.actionLabel }}
+                      </a>
+                    } @else {
+                      <button
+                        type="button"
+                        class="inline-flex rounded-full px-5 py-3 text-sm font-semibold transition"
+                        [ngClass]="actionButtonClasses({ id: 'form-action', label: block.actionLabel, url: '', target: block.linkTarget, style: block.actionStyle })"
+                        [style.background]="block.actionStyle === 'solid' ? (block.accentColor || theme.accent) : 'transparent'"
+                        [style.borderColor]="block.actionStyle !== 'ghost' ? (block.accentColor || theme.accent) : 'transparent'"
+                        [style.color]="block.actionStyle === 'solid' ? '#ffffff' : (block.accentColor || theme.accent)"
+                      >
+                        {{ block.actionLabel }}
+                      </button>
+                    }
+                  </div>
+                }
+              </form>
             </div>
           }
           @if (widgetMode(block.widgetKind) === 'media') {

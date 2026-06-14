@@ -217,6 +217,16 @@ export class SiteRendererComponent {
     return block.linkUrls[index] || block.items[index] || 'Deger girin';
   }
 
+  widgetChoices(block: WidgetBlock, index: number): string[] {
+    const raw = block.mediaUrls[index] ?? '';
+    const parsed = raw
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    return parsed.length ? parsed : [block.items[index] || 'Secenek 1'];
+  }
+
   widgetMediaUrl(block: WidgetBlock, index: number): string {
     return block.mediaUrls[index] || block.imageUrl;
   }

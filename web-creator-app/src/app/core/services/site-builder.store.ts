@@ -353,6 +353,9 @@ export class SiteBuilderStore {
       widgetKind,
       subtitle: meta?.category ?? 'Widget',
       body: meta?.hint ?? 'Bu widget icin iceriklerinizi inspector tarafindan girebilirsiniz.',
+      actionLabel: widgetKind === 'forms' ? 'Formu Gonder' : 'Aksiyon',
+      actionUrl: widgetKind === 'forms' ? 'https://example.com/form-submit' : '',
+      actionStyle: 'solid',
       imageUrl:
         widgetKind === 'gallery' || widgetKind === 'video' || widgetKind === 'images'
           ? 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80'
@@ -591,6 +594,9 @@ export class SiteBuilderStore {
         ...widget,
         subtitle: widget.subtitle ?? '',
         body: widget.body ?? '',
+        actionLabel: widget.actionLabel ?? (widget.widgetKind === 'forms' ? 'Formu Gonder' : 'Aksiyon'),
+        actionUrl: widget.actionUrl ?? '',
+        actionStyle: widget.actionStyle ?? 'solid',
         imageUrl: widget.imageUrl ?? '',
         items: widget.items ?? [],
         detailItems: widget.detailItems ?? [],
