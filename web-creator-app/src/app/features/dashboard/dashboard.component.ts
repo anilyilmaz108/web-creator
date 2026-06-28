@@ -57,6 +57,24 @@ export class DashboardComponent {
   readonly activeHostingCount = computed(
     () => this.visibleHostingTargets().filter((target) => target.status === 'active').length
   );
+  readonly totalLeadCount = computed(() =>
+    this.visibleProjects().reduce((total, project) => total + project.formSubmissions.length, 0)
+  );
+  readonly mediaAssetCount = computed(() =>
+    this.visibleProjects().reduce((total, project) => total + project.mediaAssets.length, 0)
+  );
+  readonly sharedRouteCount = computed(
+    () => this.visibleProjects().filter((project) => project.costPolicy.deployStrategy === 'shared-route').length
+  );
+  readonly averageChecklistScore = computed(() => {
+    const projects = this.visibleProjects();
+    if (!projects.length) {
+      return 0;
+    }
+
+    const total = projects.reduce((score, project) => score + this.checklistScore(project), 0);
+    return Math.round(total / projects.length);
+  });
   readonly visiblePendingProjects = computed(() => {
     const simulatedSiteId = this.builderStore.simulatedSiteId();
     return simulatedSiteId
@@ -184,6 +202,20 @@ export class DashboardComponent {
 
   activeHosting(project: SiteProject): boolean {
     return project.hostingTargets.some((target) => target.status === 'active');
+  }
+
+  checklistScore(project: SiteProject): number {
+    const checks = this.builderStore.publicationChecklist(project);
+    if (!checks.length) {
+      return 0;
+    }
+
+    return Math.round((checks.filter((item) => item.status === 'pass').length / checks.length) * 100);
+  }
+
+  mediaUsage(project: SiteProject): string {
+    const mb = project.mediaAssets.reduce((total, asset) => total + asset.sizeKb, 0) / 1024;
+    return `${mb.toFixed(1)} MB`;
   }
 
   formatDate(value?: string): string {

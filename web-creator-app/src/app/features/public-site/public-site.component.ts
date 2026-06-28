@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
+import { Meta, Title } from '@angular/platform-browser';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { MockAuthService } from '../../core/services/mock-auth.service';
@@ -17,9 +18,25 @@ export class PublicSiteComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly store = inject(SiteBuilderStore);
   private readonly auth = inject(MockAuthService);
+  private readonly title = inject(Title);
+  private readonly meta = inject(Meta);
 
   readonly site = this.store.findBySlug(this.route.snapshot.paramMap.get('slug') ?? '');
   readonly currentUser = this.auth.currentUser;
+
+  constructor() {
+    if (!this.site) {
+      return;
+    }
+
+    this.title.setTitle(this.site.seo.title || this.site.name);
+    this.meta.updateTag({ name: 'description', content: this.site.seo.description });
+    this.meta.updateTag({ name: 'keywords', content: this.site.seo.keywords });
+    this.meta.updateTag({ property: 'og:title', content: this.site.seo.title || this.site.name });
+    this.meta.updateTag({ property: 'og:description', content: this.site.seo.description });
+    this.meta.updateTag({ property: 'og:image', content: this.site.seo.ogImage });
+    this.meta.updateTag({ name: 'robots', content: this.site.seo.noIndex ? 'noindex,nofollow' : 'index,follow' });
+  }
 
   get isAvailable(): boolean {
     if (!this.site || this.site.status !== 'published') {

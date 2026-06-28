@@ -20,6 +20,14 @@
           <h2>{{ project.name }}</h2>
           <p>Talep: {{ project.publication.requestedAt }}</p>
           <p>Hosting: {{ hostingUrl(project.id) }}</p>
+          <p>Yayin hazirligi: {{ checklistScore(project) }}%</p>
+          <div class="checklist">
+            @for (item of store.publicationChecklist(project); track item.id) {
+              @if (item.status !== 'pass') {
+                <span>{{ item.label }}: {{ item.status }}</span>
+              }
+            }
+          </div>
         </div>
         <div class="actions">
           <button type="button" (click)="approve(project.id, 7)">7 Gun</button>

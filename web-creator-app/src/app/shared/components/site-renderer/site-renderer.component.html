@@ -4,7 +4,8 @@
   [style.color]="theme.foreground"
   [style.fontFamily]="theme.fontFamily"
   [style.maxWidth.px]="theme.pageWidth"
-  [style.gap.px]="theme.sectionGap"
+  [style.gap.px]="sectionGap()"
+  [style.--wc-button-radius]="buttonRadius()"
   [ngClass]="{
     'p-6': viewport === 'desktop',
     'p-5': viewport === 'tablet',
@@ -26,13 +27,7 @@
       [style.color]="block.textColor || theme.foreground"
       [style.borderColor]="selectedBlockId === block.id ? block.accentColor || theme.accent : theme.border"
       [style.borderRadius.px]="theme.cardRadius"
-      [style.boxShadow]="
-        theme.shadowStyle === 'soft'
-          ? '0 24px 60px rgba(15,23,42,0.08)'
-          : theme.shadowStyle === 'medium'
-            ? '0 28px 70px rgba(15,23,42,0.12)'
-            : '0 34px 84px rgba(15,23,42,0.18)'
-      "
+      [style.boxShadow]="cardShadow()"
       [style.outline]="selectedBlockId === block.id ? '3px solid ' + (block.accentColor || theme.accent) : 'none'"
       [style.outlineOffset.px]="selectedBlockId === block.id ? 2 : 0"
       [style.minHeight.px]="block.minHeight || null"

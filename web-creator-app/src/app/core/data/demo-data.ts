@@ -101,6 +101,67 @@ export const demoProjects: SiteProject[] = [
       loginTitle: 'Northwind Studio uyelik alani',
       gatedMessage: 'Bu siteye devam etmek icin lutfen giris yapin.'
     },
+    seo: {
+      title: 'Northwind Studio | Creative Website Builder',
+      description: 'Northwind Studio icin hazirlanan responsive, cok dilli ve kolay yonetilebilir demo web sitesi.',
+      keywords: 'website builder, northwind studio, landing page, firebase hosting',
+      ogImage: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
+      canonicalUrl: 'https://web-creator-anilyilmaz.web.app/sites/northwind-studio',
+      noIndex: false
+    },
+    mediaAssets: [
+      {
+        id: 'media-demo-hero',
+        name: 'Hero ofis gorseli',
+        url: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=80',
+        altText: 'Modern ofis ortaminda calisan ekip',
+        type: 'image',
+        sizeKb: 420,
+        width: 1200,
+        height: 800,
+        optimized: true,
+        createdAt: '2026-06-01T09:00:00.000Z'
+      }
+    ],
+    formSubmissions: [
+      {
+        id: 'lead-demo-1',
+        formName: 'Iletisim Formu',
+        createdAt: '2026-06-12T10:30:00.000Z',
+        status: 'new',
+        values: {
+          Ad: 'Ayse Demir',
+          'E-posta': 'ayse@example.com',
+          Mesaj: 'Kurumsal site paketi hakkinda bilgi almak istiyorum.'
+        }
+      },
+      {
+        id: 'lead-demo-2',
+        formName: 'Teklif Formu',
+        createdAt: '2026-06-10T14:15:00.000Z',
+        status: 'contacted',
+        values: {
+          Ad: 'Mehmet Kaya',
+          'E-posta': 'mehmet@example.com',
+          Plan: 'Growth'
+        }
+      }
+    ],
+    metrics: {
+      views: 1840,
+      visitors: 1190,
+      leads: 54,
+      conversionRate: 4.5,
+      updatedAt: '2026-06-15T08:00:00.000Z'
+    },
+    costPolicy: {
+      deployStrategy: 'shared-route',
+      mediaLimitMb: 50,
+      auditRetentionDays: 90,
+      monthlyFunctionBudget: 10,
+      summaryFirstReads: true
+    },
+    versionHistory: [],
     languages: [
       {
         id: 'language-tr',

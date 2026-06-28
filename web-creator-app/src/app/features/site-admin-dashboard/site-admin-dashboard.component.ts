@@ -1,15 +1,16 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
-import { PageBlock, SiteProject } from '../../core/models/builder.models';
+import { FormSubmission, PageBlock, SiteProject } from '../../core/models/builder.models';
 import { MockAuthService } from '../../core/services/mock-auth.service';
 import { SiteBuilderStore } from '../../core/services/site-builder.store';
 
 @Component({
   selector: 'app-site-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './site-admin-dashboard.component.html',
   styleUrl: './site-admin-dashboard.component.scss'
 })
@@ -33,18 +34,14 @@ export class SiteAdminDashboardComponent {
     }
 
     const blockCount = site.pages.reduce((total, page) => total + page.blocks.length, 0);
-    const formCount = this.blocks(site).filter((block) => block.type === 'widget' && block.widgetKind === 'forms').length;
-    const mediaCount = this.blocks(site).filter(
-      (block) => block.type === 'image' || (block.type === 'widget' && ['gallery', 'carousel', 'video'].includes(block.widgetKind))
-    ).length;
 
     return [
-      { label: 'Sayfa', value: site.pages.length },
-      { label: 'Block', value: blockCount },
-      { label: 'Dil', value: site.languages.filter((language) => language.enabled).length },
-      { label: 'Lead', value: Math.max(formCount * 24, site.status === 'published' ? 18 : 0) },
-      { label: 'Medya', value: mediaCount },
-      { label: 'Hosting', value: site.hostingTargets.length }
+      { label: 'Goruntulenme', value: site.metrics.views },
+      { label: 'Ziyaretci', value: site.metrics.visitors },
+      { label: 'Lead', value: site.formSubmissions.length || site.metrics.leads },
+      { label: 'Donusum', value: `${site.metrics.conversionRate}%` },
+      { label: 'Yayin hazirligi', value: `${this.checklistScore(site)}%` },
+      { label: 'Block', value: blockCount }
     ];
   });
   readonly chart = computed(() => {
@@ -84,6 +81,11 @@ export class SiteAdminDashboardComponent {
     this.store.requestPublication(site.publication.hostingTargetId, this.currentUser()?.id);
   }
 
+  updateSubmissionStatus(site: SiteProject, submission: FormSubmission, status: FormSubmission['status']): void {
+    this.store.selectSite(site.id);
+    this.store.updateFormSubmissionStatus(submission.id, status);
+  }
+
   stopSimulation(): void {
     this.store.stopSimulation();
   }
@@ -105,6 +107,20 @@ export class SiteAdminDashboardComponent {
 
   barHeight(value: number): number {
     return Math.max(12, (value / this.maxChartValue()) * 100);
+  }
+
+  checklistScore(site: SiteProject): number {
+    const checks = this.store.publicationChecklist(site);
+    if (!checks.length) {
+      return 0;
+    }
+
+    return Math.round((checks.filter((item) => item.status === 'pass').length / checks.length) * 100);
+  }
+
+  mediaUsage(site: SiteProject): string {
+    const mb = site.mediaAssets.reduce((total, asset) => total + asset.sizeKb, 0) / 1024;
+    return `${mb.toFixed(1)} MB`;
   }
 
   private blocks(site: SiteProject): PageBlock[] {

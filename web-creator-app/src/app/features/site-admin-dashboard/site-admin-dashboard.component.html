@@ -88,6 +88,65 @@
               </tbody>
             </table>
           </article>
+
+          <article>
+            <h3>Leadler</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Form</th>
+                  <th>Kisi</th>
+                  <th>Durum</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (submission of site.formSubmissions; track submission.id) {
+                  <tr>
+                    <td>{{ submission.formName }}</td>
+                    <td>
+                      {{ submission.values['Ad'] || submission.values['Ad Soyad'] || submission.values['E-posta'] || 'Lead' }}
+                    </td>
+                    <td>
+                      <select
+                        [ngModel]="submission.status"
+                        (ngModelChange)="updateSubmissionStatus(site, submission, $event)"
+                      >
+                        <option value="new">new</option>
+                        <option value="contacted">contacted</option>
+                        <option value="closed">closed</option>
+                      </select>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="3">Henuz lead yok.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </article>
+
+          <article>
+            <h3>Operasyon Ozeti</h3>
+            <div class="summary-list">
+              <div>
+                <span>SEO</span>
+                <strong>{{ site.seo.noIndex ? 'NoIndex' : site.seo.title }}</strong>
+              </div>
+              <div>
+                <span>Medya</span>
+                <strong>{{ site.mediaAssets.length }} varlik - {{ mediaUsage(site) }}</strong>
+              </div>
+              <div>
+                <span>Maliyet</span>
+                <strong>{{ site.costPolicy.deployStrategy }} / {{ site.costPolicy.monthlyFunctionBudget }}</strong>
+              </div>
+              <div>
+                <span>Log saklama</span>
+                <strong>{{ site.costPolicy.auditRetentionDays }} gun</strong>
+              </div>
+            </div>
+          </article>
         </div>
       </main>
 

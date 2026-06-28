@@ -20,17 +20,32 @@
           </div>
 
           <div class="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              (click)="undo()"
+              [disabled]="!canUndo()"
+              class="inline-flex items-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Geri Al
+            </button>
+            <button
+              type="button"
+              (click)="redo()"
+              [disabled]="!canRedo()"
+              class="inline-flex items-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Ileri Al
+            </button>
+            @if (lastSavedAt()) {
+              <span class="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300">
+                Kayit: {{ formatDate(lastSavedAt()) }}
+              </span>
+            }
             <a
               routerLink="/dashboard"
               class="inline-flex items-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-100 transition hover:bg-white/10"
             >
               Dashboard
-            </a>
-            <a
-              [routerLink]="['/demo', site.id]"
-              class="inline-flex items-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-100 transition hover:bg-white/10"
-            >
-              Demo Izle
             </a>
             @if (canRequestPublication()) {
               @if (site.status === 'published') {
@@ -119,6 +134,28 @@
             <section class="rounded-[24px] border border-white/10 bg-white/5 p-4">
               <div class="mb-4">
                 <h2 class="font-ui text-sm font-semibold uppercase tracking-[0.16em] text-slate-200">
+                  Hazir Section Setleri
+                </h2>
+                <p class="mt-1 text-sm text-slate-400">Yayina yakin sayfa akislari</p>
+              </div>
+
+              <div class="space-y-2">
+                @for (template of store.sectionTemplates; track template.id) {
+                  <button
+                    type="button"
+                    (click)="addSectionTemplate(template.id)"
+                    class="w-full rounded-2xl border border-white/10 bg-slate-900/80 p-4 text-left transition hover:border-cyan-400/40 hover:bg-slate-900"
+                  >
+                    <strong class="block text-sm font-semibold text-white">{{ template.name }}</strong>
+                    <span class="mt-1 block text-sm text-slate-400">{{ template.description }}</span>
+                  </button>
+                }
+              </div>
+            </section>
+
+            <section class="rounded-[24px] border border-white/10 bg-white/5 p-4">
+              <div class="mb-4">
+                <h2 class="font-ui text-sm font-semibold uppercase tracking-[0.16em] text-slate-200">
                   Ana Blocklar
                 </h2>
                 <p class="mt-1 text-sm text-slate-400">Hero, text, image, cards gibi cekirdek alanlar</p>
@@ -146,6 +183,40 @@
                 <p class="mt-1 text-sm text-slate-400">Uzatilabilir widget katalogu</p>
               </div>
 
+              @if (favoriteCatalog().length) {
+                <div class="mb-3 rounded-2xl border border-amber-300/20 bg-amber-300/10 p-3">
+                  <p class="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-amber-100">Favoriler</p>
+                  <div class="flex flex-wrap gap-2">
+                    @for (item of favoriteCatalog(); track item.kind) {
+                      <button
+                        type="button"
+                        (click)="addWidget(item.kind)"
+                        class="rounded-full border border-amber-200/20 bg-slate-950/40 px-3 py-1.5 text-xs font-semibold text-amber-50"
+                      >
+                        {{ item.label }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+
+              @if (recentCatalog().length) {
+                <div class="mb-3 rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-3">
+                  <p class="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-100">Son Kullanilanlar</p>
+                  <div class="flex flex-wrap gap-2">
+                    @for (item of recentCatalog(); track item.kind) {
+                      <button
+                        type="button"
+                        (click)="addWidget(item.kind)"
+                        class="rounded-full border border-cyan-200/20 bg-slate-950/40 px-3 py-1.5 text-xs font-semibold text-cyan-50"
+                      >
+                        {{ item.label }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+
               <input
                 [(ngModel)]="catalogSearch"
                 placeholder="Component ara"
@@ -171,19 +242,31 @@
 
               <div class="max-h-[520px] space-y-2 overflow-y-auto pr-1">
                 @for (item of filteredCatalog; track item.kind) {
-                  <button
-                    type="button"
-                    (click)="addWidget(item.kind)"
-                    class="w-full rounded-2xl border border-white/10 bg-slate-900/80 p-4 text-left transition hover:border-fuchsia-400/40 hover:bg-slate-900"
-                  >
+                  <article class="rounded-2xl border border-white/10 bg-slate-900/80 p-4 transition hover:border-fuchsia-400/40 hover:bg-slate-900">
                     <div class="flex items-center justify-between gap-3">
-                      <strong class="font-display block text-sm text-white">{{ item.label }}</strong>
-                      <span class="rounded-full bg-white/10 px-2 py-1 text-[11px] uppercase tracking-[0.16em] text-slate-300">
-                        {{ item.category }}
-                      </span>
+                      <button type="button" (click)="addWidget(item.kind)" class="min-w-0 flex-1 text-left">
+                        <strong class="font-display block text-sm text-white">{{ item.label }}</strong>
+                        <span class="mt-2 block text-sm text-slate-400">{{ item.hint }}</span>
+                      </button>
+                      <div class="flex shrink-0 flex-col items-end gap-2">
+                        <span class="rounded-full bg-white/10 px-2 py-1 text-[11px] uppercase tracking-[0.16em] text-slate-300">
+                          {{ item.category }}
+                        </span>
+                        <button
+                          type="button"
+                          (click)="toggleFavoriteWidget(item.kind)"
+                          class="rounded-full border px-2 py-1 text-[11px] font-semibold transition"
+                          [ngClass]="
+                            isFavoriteWidget(item.kind)
+                              ? 'border-amber-300/30 bg-amber-300/20 text-amber-100'
+                              : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10'
+                          "
+                        >
+                          {{ isFavoriteWidget(item.kind) ? 'Favori' : 'Ekle' }}
+                        </button>
+                      </div>
                     </div>
-                    <span class="mt-2 block text-sm text-slate-400">{{ item.hint }}</span>
-                  </button>
+                  </article>
                 } @empty {
                   <p class="rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-4 text-sm text-slate-400">
                     Aramaniza uygun component bulunamadi.
@@ -535,6 +618,32 @@
                     <input type="number" [ngModel]="site.theme.sectionGap" (ngModelChange)="updateThemeField('sectionGap', +$event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50" />
                   </label>
                 </div>
+                <div class="grid gap-3 sm:grid-cols-3">
+                  <label class="grid min-w-0 gap-2 text-sm text-slate-300">
+                    <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Buton</span>
+                    <select [ngModel]="site.theme.buttonStyle" (ngModelChange)="updateThemeField('buttonStyle', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50">
+                      @for (option of themeButtonStyleOptions; track option) {
+                        <option [value]="option">{{ option }}</option>
+                      }
+                    </select>
+                  </label>
+                  <label class="grid min-w-0 gap-2 text-sm text-slate-300">
+                    <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Kart</span>
+                    <select [ngModel]="site.theme.cardStyle" (ngModelChange)="updateThemeField('cardStyle', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50">
+                      @for (option of themeCardStyleOptions; track option) {
+                        <option [value]="option">{{ option }}</option>
+                      }
+                    </select>
+                  </label>
+                  <label class="grid min-w-0 gap-2 text-sm text-slate-300">
+                    <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Spacing</span>
+                    <select [ngModel]="site.theme.spacingScale" (ngModelChange)="updateThemeField('spacingScale', $event)" class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50">
+                      @for (option of spacingScaleOptions; track option) {
+                        <option [value]="option">{{ option }}</option>
+                      }
+                    </select>
+                  </label>
+                </div>
               </div>
             </details>
             }
@@ -550,6 +659,83 @@
               </summary>
 
               <div class="mt-4 grid gap-4">
+                <div class="rounded-2xl border border-white/10 bg-slate-950/40 p-3">
+                  <div class="mb-3 flex items-center justify-between gap-3">
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">Yayin Kontrol Listesi</p>
+                    <span class="rounded-full bg-white/10 px-2 py-1 text-xs text-slate-300">
+                      {{ checklistPassed() }}/{{ publicationChecklist().length }}
+                    </span>
+                  </div>
+
+                  <div class="space-y-2">
+                    @for (item of publicationChecklist(); track item.id) {
+                      <article class="rounded-2xl border p-3" [ngClass]="checklistClass(item.status)">
+                        <div class="flex items-center justify-between gap-3">
+                          <strong class="text-sm">{{ item.label }}</strong>
+                          <span class="rounded-full bg-black/10 px-2 py-1 text-[11px] uppercase tracking-[0.16em]">
+                            {{ item.status }}
+                          </span>
+                        </div>
+                        <p class="mt-1 text-xs opacity-80">{{ item.details }}</p>
+                      </article>
+                    }
+                  </div>
+                </div>
+
+                <div class="rounded-2xl border border-white/10 bg-slate-950/40 p-3">
+                  <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">SEO ve Paylasim</p>
+                  <div class="mt-3 grid gap-3">
+                    <label class="grid gap-2 text-sm text-slate-300">
+                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">SEO basligi</span>
+                      <input
+                        [ngModel]="site.seo.title"
+                        (ngModelChange)="updateSeoField('title', $event)"
+                        class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
+                      />
+                    </label>
+                    <label class="grid gap-2 text-sm text-slate-300">
+                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">SEO aciklamasi</span>
+                      <textarea
+                        [ngModel]="site.seo.description"
+                        (ngModelChange)="updateSeoField('description', $event)"
+                        class="min-h-24 rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
+                      ></textarea>
+                    </label>
+                    <label class="grid gap-2 text-sm text-slate-300">
+                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Anahtar kelimeler</span>
+                      <input
+                        [ngModel]="site.seo.keywords"
+                        (ngModelChange)="updateSeoField('keywords', $event)"
+                        class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
+                      />
+                    </label>
+                    <label class="grid gap-2 text-sm text-slate-300">
+                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">OG gorsel URL</span>
+                      <input
+                        [ngModel]="site.seo.ogImage"
+                        (ngModelChange)="updateSeoField('ogImage', $event)"
+                        class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
+                      />
+                    </label>
+                    <label class="grid gap-2 text-sm text-slate-300">
+                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Canonical URL</span>
+                      <input
+                        [ngModel]="site.seo.canonicalUrl"
+                        (ngModelChange)="updateSeoField('canonicalUrl', $event)"
+                        class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
+                      />
+                    </label>
+                    <label class="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">
+                      <input
+                        type="checkbox"
+                        [ngModel]="site.seo.noIndex"
+                        (ngModelChange)="updateSeoField('noIndex', $event)"
+                      />
+                      <span>Arama motorlarindan gizle</span>
+                    </label>
+                  </div>
+                </div>
+
                 <div class="rounded-2xl border border-white/10 bg-slate-950/40 p-3">
                   <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">Erisim</p>
                   <div class="mt-3 grid gap-3">
@@ -806,6 +992,16 @@
                           <p class="truncate rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-slate-300">
                             {{ hostingUrl(target.defaultUrl, target.customDomain) }}
                           </p>
+
+                          <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-slate-300">
+                            <div class="flex items-center justify-between gap-3">
+                              <span>Domain durumu</span>
+                              <strong class="text-white">{{ target.domainStatus || 'not-started' }}</strong>
+                            </div>
+                            @if (target.dnsInstructions) {
+                              <p class="mt-2 whitespace-normal break-words text-slate-400">{{ target.dnsInstructions }}</p>
+                            }
+                          </div>
                         </div>
                       </div>
                     }
@@ -844,6 +1040,183 @@
                     >
                       Hosting Ekle
                     </button>
+                  </div>
+                </div>
+
+                <div class="rounded-2xl border border-white/10 bg-slate-950/40 p-3">
+                  <div class="mb-3 flex items-center justify-between gap-3">
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">Medya Kutuphanesi</p>
+                    <span class="rounded-full bg-white/10 px-2 py-1 text-xs text-slate-300">
+                      {{ mediaUsageMb().toFixed(1) }}/{{ site.costPolicy.mediaLimitMb }} MB
+                    </span>
+                  </div>
+
+                  <div class="grid gap-3 rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-3">
+                    <input
+                      [(ngModel)]="newMedia.name"
+                      placeholder="Medya adi"
+                      class="rounded-2xl border border-white/10 bg-slate-900/80 px-3 py-3 text-sm text-white outline-none focus:border-cyan-400/50"
+                    />
+                    <input
+                      [(ngModel)]="newMedia.url"
+                      placeholder="https://..."
+                      class="rounded-2xl border border-white/10 bg-slate-900/80 px-3 py-3 text-sm text-white outline-none focus:border-cyan-400/50"
+                    />
+                    <input
+                      [(ngModel)]="newMedia.altText"
+                      placeholder="Alt text"
+                      class="rounded-2xl border border-white/10 bg-slate-900/80 px-3 py-3 text-sm text-white outline-none focus:border-cyan-400/50"
+                    />
+                    <div class="grid grid-cols-2 gap-2">
+                      <select
+                        [(ngModel)]="newMedia.type"
+                        class="min-w-0 rounded-2xl border border-white/10 bg-slate-900/80 px-3 py-3 text-sm text-white outline-none focus:border-cyan-400/50"
+                      >
+                        <option value="image">image</option>
+                        <option value="video">video</option>
+                        <option value="document">document</option>
+                      </select>
+                      <input
+                        type="number"
+                        min="0"
+                        [(ngModel)]="newMedia.sizeKb"
+                        class="min-w-0 rounded-2xl border border-white/10 bg-slate-900/80 px-3 py-3 text-sm text-white outline-none focus:border-cyan-400/50"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      (click)="addMediaAsset()"
+                      class="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
+                    >
+                      Medya Ekle
+                    </button>
+                  </div>
+
+                  <div class="mt-3 space-y-2">
+                    @for (asset of site.mediaAssets; track asset.id) {
+                      <article class="rounded-2xl border border-white/10 bg-slate-900/60 p-3">
+                        <div class="flex items-start justify-between gap-3">
+                          <div class="min-w-0">
+                            <strong class="block truncate text-sm text-white">{{ asset.name }}</strong>
+                            <span class="text-xs text-slate-400">{{ asset.type }} - {{ asset.sizeKb }} KB</span>
+                          </div>
+                          <button
+                            type="button"
+                            (click)="removeMediaAsset(asset.id)"
+                            class="rounded-xl border border-rose-300/20 bg-rose-300/10 px-3 py-2 text-xs font-semibold text-rose-100"
+                          >
+                            Sil
+                          </button>
+                        </div>
+                        <p class="mt-2 break-words text-xs text-slate-400">{{ asset.url }}</p>
+                      </article>
+                    } @empty {
+                      <p class="rounded-2xl border border-white/10 bg-slate-900/60 p-3 text-sm text-slate-400">
+                        Henuz medya eklenmedi.
+                      </p>
+                    }
+                  </div>
+                </div>
+
+                <div class="rounded-2xl border border-white/10 bg-slate-950/40 p-3">
+                  <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">Maliyet Politikasi</p>
+                  <div class="mt-3 grid gap-3">
+                    <label class="grid gap-2 text-sm text-slate-300">
+                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Yayin stratejisi</span>
+                      <select
+                        [ngModel]="site.costPolicy.deployStrategy"
+                        (ngModelChange)="updateCostPolicy('deployStrategy', $event)"
+                        class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
+                      >
+                        @for (option of deployStrategyOptions; track option) {
+                          <option [value]="option">{{ option }}</option>
+                        }
+                      </select>
+                    </label>
+                    <div class="grid grid-cols-2 gap-3">
+                      <label class="grid min-w-0 gap-2 text-sm text-slate-300">
+                        <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Medya MB</span>
+                        <input
+                          type="number"
+                          min="5"
+                          [ngModel]="site.costPolicy.mediaLimitMb"
+                          (ngModelChange)="updateCostPolicy('mediaLimitMb', +$event)"
+                          class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
+                        />
+                      </label>
+                      <label class="grid min-w-0 gap-2 text-sm text-slate-300">
+                        <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Log gun</span>
+                        <input
+                          type="number"
+                          min="7"
+                          [ngModel]="site.costPolicy.auditRetentionDays"
+                          (ngModelChange)="updateCostPolicy('auditRetentionDays', +$event)"
+                          class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
+                        />
+                      </label>
+                    </div>
+                    <label class="grid gap-2 text-sm text-slate-300">
+                      <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Aylik function butcesi</span>
+                      <input
+                        type="number"
+                        min="1"
+                        [ngModel]="site.costPolicy.monthlyFunctionBudget"
+                        (ngModelChange)="updateCostPolicy('monthlyFunctionBudget', +$event)"
+                        class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-white outline-none focus:border-cyan-400/50"
+                      />
+                    </label>
+                    <label class="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">
+                      <input
+                        type="checkbox"
+                        [ngModel]="site.costPolicy.summaryFirstReads"
+                        (ngModelChange)="updateCostPolicy('summaryFirstReads', $event)"
+                      />
+                      <span>Dashboardlarda ozet veriyi once oku</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="rounded-2xl border border-white/10 bg-slate-950/40 p-3">
+                  <div class="mb-3 flex items-center justify-between gap-3">
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">Versiyon Gecmisi</p>
+                    <span class="rounded-full bg-white/10 px-2 py-1 text-xs text-slate-300">{{ site.versionHistory.length }}</span>
+                  </div>
+                  <div class="flex gap-2">
+                    <input
+                      [(ngModel)]="snapshotName"
+                      placeholder="Snapshot adi"
+                      class="min-w-0 flex-1 rounded-2xl border border-white/10 bg-slate-900/80 px-3 py-3 text-sm text-white outline-none focus:border-cyan-400/50"
+                    />
+                    <button
+                      type="button"
+                      (click)="saveSnapshot()"
+                      class="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
+                    >
+                      Kaydet
+                    </button>
+                  </div>
+                  <div class="mt-3 space-y-2">
+                    @for (snapshot of site.versionHistory; track snapshot.id) {
+                      <article class="rounded-2xl border border-white/10 bg-slate-900/60 p-3">
+                        <div class="flex items-start justify-between gap-3">
+                          <div class="min-w-0">
+                            <strong class="block truncate text-sm text-white">{{ snapshot.name }}</strong>
+                            <span class="text-xs text-slate-400">{{ formatDate(snapshot.createdAt) }}</span>
+                          </div>
+                          <button
+                            type="button"
+                            (click)="restoreSnapshot(snapshot.id)"
+                            class="rounded-xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs font-semibold text-amber-100"
+                          >
+                            Yukle
+                          </button>
+                        </div>
+                      </article>
+                    } @empty {
+                      <p class="rounded-2xl border border-white/10 bg-slate-900/60 p-3 text-sm text-slate-400">
+                        Snapshot kaydi yok.
+                      </p>
+                    }
                   </div>
                 </div>
               </div>

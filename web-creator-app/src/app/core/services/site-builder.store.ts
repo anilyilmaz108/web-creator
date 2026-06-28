@@ -7,18 +7,27 @@ import {
   AuditLogEntry,
   AuditLogLevel,
   BlockType,
+  ChecklistStatus,
   CtaBlock,
+  DeployStrategy,
   FeaturesBlock,
+  FormSubmission,
   HostingProvider,
   HostingTarget,
   HeroBlock,
   ImageBlock,
   LanguageConfig,
   LayoutMode,
+  MediaAsset,
   PageBlock,
+  PublicationChecklistItem,
+  SeoSettings,
   SitePage,
   SiteAccessSettings,
+  SiteCostPolicy,
+  SiteMetrics,
   SiteProject,
+  SiteVersionSnapshot,
   TableBlock,
   ThemeConfig,
   TextBlock,
@@ -33,6 +42,15 @@ import { MockAuthService } from './mock-auth.service';
 const PROJECTS_KEY = 'web-creator-projects';
 const CUSTOM_THEMES_KEY = 'web-creator-custom-themes';
 const SIMULATION_KEY = 'web-creator-simulation-site-id';
+const FAVORITE_WIDGETS_KEY = 'web-creator-favorite-widgets';
+const RECENT_WIDGETS_KEY = 'web-creator-recent-widgets';
+
+interface SectionTemplate {
+  id: string;
+  name: string;
+  description: string;
+  blocks: Array<{ type: BlockType; widgetKind?: WidgetKind }>;
+}
 
 @Injectable({ providedIn: 'root' })
 export class SiteBuilderStore {
@@ -45,6 +63,11 @@ export class SiteBuilderStore {
   private readonly selectedBlockIdSignal = signal<string | null>(null);
   private readonly viewportSignal = signal<ViewportMode>('desktop');
   private readonly simulatedSiteIdSignal = signal<string | null>(this.loadSimulationSiteId());
+  private readonly favoriteWidgetKindsSignal = signal<WidgetKind[]>(this.loadWidgetKinds(FAVORITE_WIDGETS_KEY));
+  private readonly recentWidgetKindsSignal = signal<WidgetKind[]>(this.loadWidgetKinds(RECENT_WIDGETS_KEY));
+  private readonly undoStackSignal = signal<string[]>([]);
+  private readonly redoStackSignal = signal<string[]>([]);
+  private readonly lastSavedAtSignal = signal<string | null>(null);
 
   readonly projects = computed(() => this.projectsSignal());
   readonly auditLogs = this.auditLog.logs;
@@ -55,6 +78,31 @@ export class SiteBuilderStore {
   readonly selectedSiteId = computed(() => this.selectedSiteIdSignal());
   readonly selectedBlockId = computed(() => this.selectedBlockIdSignal());
   readonly viewport = computed(() => this.viewportSignal());
+  readonly favoriteWidgetKinds = computed(() => this.favoriteWidgetKindsSignal());
+  readonly recentWidgetKinds = computed(() => this.recentWidgetKindsSignal());
+  readonly canUndo = computed(() => this.undoStackSignal().length > 0);
+  readonly canRedo = computed(() => this.redoStackSignal().length > 0);
+  readonly lastSavedAt = computed(() => this.lastSavedAtSignal());
+  readonly sectionTemplates: SectionTemplate[] = [
+    {
+      id: 'landing-core',
+      name: 'Landing Core',
+      description: 'Hero, fayda kartlari ve CTA bloklari',
+      blocks: [{ type: 'hero' }, { type: 'features' }, { type: 'cta' }]
+    },
+    {
+      id: 'content-trust',
+      name: 'Guven ve Icerik',
+      description: 'Metin, tablo ve sik sorulan alanlari',
+      blocks: [{ type: 'text' }, { type: 'table' }, { type: 'widget', widgetKind: 'accordion' }]
+    },
+    {
+      id: 'lead-capture',
+      name: 'Lead Capture',
+      description: 'Form, sosyal kanit ve final aksiyon',
+      blocks: [{ type: 'widget', widgetKind: 'forms' }, { type: 'widget', widgetKind: 'rating' }, { type: 'cta' }]
+    }
+  ];
   readonly selectedSite = computed(
     () => this.projectsSignal().find((project) => project.id === this.selectedSiteIdSignal()) ?? null
   );
@@ -90,6 +138,23 @@ export class SiteBuilderStore {
   readonly simulatedSite = computed(() =>
     this.projectsSignal().find((project) => project.id === this.simulatedSiteIdSignal()) ?? null
   );
+  readonly siteSummaries = computed(() =>
+    this.projectsSignal().map((project) => ({
+      id: project.id,
+      name: project.name,
+      slug: project.slug,
+      ownerId: project.ownerId,
+      status: project.status,
+      pageCount: project.pages.length,
+      blockCount: project.pages.reduce((total, page) => total + page.blocks.length, 0),
+      languageCount: project.languages.filter((language) => language.enabled).length,
+      mediaCount: project.mediaAssets.length,
+      leadCount: project.formSubmissions.length,
+      hostingCount: project.hostingTargets.length,
+      activeHostingCount: project.hostingTargets.filter((target) => target.status === 'active').length,
+      checklistScore: this.publicationChecklist(project).filter((item) => item.status === 'pass').length
+    }))
+  );
 
   constructor() {
     this.hydrateFromFirebase();
@@ -110,6 +175,12 @@ export class SiteBuilderStore {
       status: 'draft',
       theme,
       access: this.defaultAccessSettings(),
+      seo: this.defaultSeoSettings(safeName, slug),
+      mediaAssets: [],
+      formSubmissions: this.defaultFormSubmissions(safeName),
+      metrics: this.defaultMetrics(),
+      costPolicy: this.defaultCostPolicy(),
+      versionHistory: [],
       languages: this.defaultLanguages(),
       hostingTargets: [this.createHostingTarget(slug, 'Production', 'firebase', '', slug, 'draft')],
       selectedPageId: pageId,
@@ -141,6 +212,7 @@ export class SiteBuilderStore {
     this.projectsSignal.update((projects) => [project, ...projects]);
     this.selectedSiteIdSignal.set(project.id);
     this.persist();
+    this.saveVersionSnapshot('Ilk taslak', 'Site olusturuldu.');
     this.logAction('site.created', 'success', project.id, `${project.name} sitesi olusturuldu.`);
     return this.normalizeProject({ ...project, hostingTargets: project.hostingTargets.map((target) => ({ ...target, createdAt: now })) });
   }
@@ -228,6 +300,8 @@ export class SiteBuilderStore {
     const nextBlock = this.createWidget(widgetKind);
     this.patchSelectedPage((page) => ({ ...page, blocks: [...page.blocks, nextBlock] }));
     this.selectedBlockIdSignal.set(nextBlock.id);
+    this.recentWidgetKindsSignal.update((items) => [widgetKind, ...items.filter((item) => item !== widgetKind)].slice(0, 8));
+    this.persistWidgetKinds(RECENT_WIDGETS_KEY, this.recentWidgetKindsSignal());
     this.logAction('widget.created', 'success', undefined, `${nextBlock.title} component eklendi.`);
   }
 
@@ -466,7 +540,15 @@ export class SiteBuilderStore {
           ? {
               ...target,
               ...patch,
-              firebaseSiteId: patch.firebaseSiteId ? this.slugify(patch.firebaseSiteId) || target.firebaseSiteId : target.firebaseSiteId
+              firebaseSiteId: patch.firebaseSiteId ? this.slugify(patch.firebaseSiteId) || target.firebaseSiteId : target.firebaseSiteId,
+              domainStatus:
+                patch.customDomain && patch.customDomain !== target.customDomain
+                  ? 'pending-dns'
+                  : target.domainStatus,
+              dnsInstructions:
+                patch.customDomain && patch.customDomain !== target.customDomain
+                  ? `DNS CNAME veya A kayitlarini Firebase Hosting yonlendirmelerine gore ${patch.customDomain} icin dogrulayin.`
+                  : target.dnsInstructions
             }
           : target
       )
@@ -500,6 +582,8 @@ export class SiteBuilderStore {
   }
 
   requestPublication(hostingTargetId?: string, requestedBy?: string): void {
+    const site = this.selectedSite();
+    const failedChecks = site ? this.publicationChecklist(site).filter((item) => item.status === 'fail') : [];
     this.patchSelectedSite((site) => ({
       ...site,
       status: 'pending',
@@ -513,6 +597,9 @@ export class SiteBuilderStore {
         hostingTargetId: hostingTargetId ?? site.publication.hostingTargetId ?? site.hostingTargets[0]?.id
       }
     }));
+    if (failedChecks.length) {
+      this.logAction('publication.checklist.warning', 'warning', undefined, `${failedChecks.length} yayin kontrolu eksik.`);
+    }
     this.logAction('publication.requested', 'warning', undefined, 'Site yayin onayina gonderildi.');
   }
 
@@ -661,11 +748,192 @@ export class SiteBuilderStore {
     return this.projectsSignal().find((project) => project.slug === slug) ?? null;
   }
 
-  private patchSelectedSite(updater: (site: SiteProject) => SiteProject): void {
+  undoSelectedSite(): void {
+    const current = this.selectedSite();
+    const previous = this.undoStackSignal()[0];
+    if (!current || !previous) {
+      return;
+    }
+
+    this.redoStackSignal.update((stack) => [this.snapshotSite(current), ...stack].slice(0, 25));
+    this.undoStackSignal.update((stack) => stack.slice(1));
+    this.replaceSiteFromSnapshot(previous);
+    this.logAction('history.undo', 'info', current.id, 'Son degisiklik geri alindi.');
+  }
+
+  redoSelectedSite(): void {
+    const current = this.selectedSite();
+    const next = this.redoStackSignal()[0];
+    if (!current || !next) {
+      return;
+    }
+
+    this.undoStackSignal.update((stack) => [this.snapshotSite(current), ...stack].slice(0, 25));
+    this.redoStackSignal.update((stack) => stack.slice(1));
+    this.replaceSiteFromSnapshot(next);
+    this.logAction('history.redo', 'info', current.id, 'Geri alinan degisiklik yeniden uygulandi.');
+  }
+
+  saveVersionSnapshot(name: string, reason = 'Manuel snapshot'): void {
+    const site = this.selectedSite();
+    const actor = this.auth.currentUser();
+    if (!site) {
+      return;
+    }
+
+    const snapshot: SiteVersionSnapshot = {
+      id: `version-${crypto.randomUUID()}`,
+      name: name.trim() || `Snapshot ${site.versionHistory.length + 1}`,
+      createdAt: new Date().toISOString(),
+      actorId: actor?.id ?? 'anonymous',
+      reason,
+      snapshot: this.snapshotSite(site)
+    };
+
+    this.patchSelectedSite(
+      (currentSite) => ({
+        ...currentSite,
+        versionHistory: [snapshot, ...currentSite.versionHistory].slice(0, 20)
+      }),
+      { skipUndo: true }
+    );
+    this.logAction('version.snapshot.created', 'success', site.id, `${snapshot.name} kaydedildi.`);
+  }
+
+  restoreVersionSnapshot(snapshotId: string): void {
+    const site = this.selectedSite();
+    const snapshot = site?.versionHistory.find((item) => item.id === snapshotId);
+    if (!site || !snapshot) {
+      return;
+    }
+
+    this.captureUndoState(site);
+    const restored = this.normalizeProject(JSON.parse(snapshot.snapshot) as SiteProject);
+    this.projectsSignal.update((projects) =>
+      projects.map((project) =>
+        project.id === site.id
+          ? {
+              ...restored,
+              id: site.id,
+              versionHistory: site.versionHistory
+            }
+          : project
+      )
+    );
+    this.persist();
+    this.logAction('version.snapshot.restored', 'warning', site.id, `${snapshot.name} snapshot geri yuklendi.`);
+  }
+
+  addSectionTemplate(templateId: string): void {
+    const template = this.sectionTemplates.find((item) => item.id === templateId);
+    if (!template) {
+      return;
+    }
+
+    const blocks = template.blocks.map((item) =>
+      item.type === 'widget' && item.widgetKind ? this.createWidget(item.widgetKind) : this.createBlock(item.type)
+    );
+    this.patchSelectedPage((page) => ({ ...page, blocks: [...page.blocks, ...blocks] }));
+    this.selectedBlockIdSignal.set(blocks[0]?.id ?? this.selectedBlockIdSignal());
+    this.logAction('section.template.added', 'success', undefined, `${template.name} section seti eklendi.`);
+  }
+
+  toggleFavoriteWidget(kind: WidgetKind): void {
+    this.favoriteWidgetKindsSignal.update((items) =>
+      items.includes(kind) ? items.filter((item) => item !== kind) : [kind, ...items].slice(0, 20)
+    );
+    this.persistWidgetKinds(FAVORITE_WIDGETS_KEY, this.favoriteWidgetKindsSignal());
+    this.logAction('builder.favorite.updated', 'info', undefined, `${kind} favori listesi guncellendi.`);
+  }
+
+  updateSeo(patch: Partial<SeoSettings>): void {
+    this.patchSelectedSite((site) => ({
+      ...site,
+      seo: {
+        ...site.seo,
+        ...patch
+      }
+    }));
+    this.logAction('seo.updated', 'info', undefined, 'SEO ayarlari guncellendi.');
+  }
+
+  addMediaAsset(asset: Omit<MediaAsset, 'id' | 'createdAt' | 'optimized'>): void {
+    const nextAsset: MediaAsset = {
+      id: `media-${crypto.randomUUID()}`,
+      createdAt: new Date().toISOString(),
+      optimized: asset.type === 'image',
+      ...asset
+    };
+
+    this.patchSelectedSite((site) => ({
+      ...site,
+      mediaAssets: [nextAsset, ...site.mediaAssets].slice(0, 200)
+    }));
+    this.logAction('media.created', 'success', undefined, `${nextAsset.name} medya kutuphanesine eklendi.`);
+  }
+
+  removeMediaAsset(assetId: string): void {
+    this.patchSelectedSite((site) => ({
+      ...site,
+      mediaAssets: site.mediaAssets.filter((asset) => asset.id !== assetId)
+    }));
+    this.logAction('media.removed', 'warning', undefined, 'Medya kutuphanesinden dosya silindi.');
+  }
+
+  updateFormSubmissionStatus(submissionId: string, status: FormSubmission['status']): void {
+    this.patchSelectedSite((site) => ({
+      ...site,
+      formSubmissions: site.formSubmissions.map((submission) =>
+        submission.id === submissionId ? { ...submission, status } : submission
+      )
+    }));
+    this.logAction('lead.status.updated', 'info', undefined, `Lead durumu ${status} olarak guncellendi.`);
+  }
+
+  updateCostPolicy(patch: Partial<SiteCostPolicy>): void {
+    this.patchSelectedSite((site) => ({
+      ...site,
+      costPolicy: {
+        ...site.costPolicy,
+        ...patch
+      }
+    }));
+    this.logAction('cost.policy.updated', 'warning', undefined, 'Maliyet politikasi guncellendi.');
+  }
+
+  publicationChecklist(project: SiteProject): PublicationChecklistItem[] {
+    const enabledLanguages = project.languages.filter((language) => language.enabled);
+    const pages = project.pages;
+    const blocks = pages.flatMap((page) => page.blocks);
+    const externalLinks = this.collectLinks(project).filter((url) => url && !url.startsWith('/') && !url.startsWith('#'));
+    const mediaTotalMb = project.mediaAssets.reduce((total, asset) => total + asset.sizeKb, 0) / 1024;
+
+    return [
+      this.checklistItem('identity', 'Site adi ve slug', project.name.trim() && project.slug.trim(), 'Site adi ve URL slug bos olmamali.'),
+      this.checklistItem('pages', 'En az bir sayfa', pages.length > 0, 'Yayina cikmak icin en az bir sayfa gerekir.'),
+      this.checklistItem('content', 'Bos ana icerik kontrolu', blocks.every((block) => this.blockHasContent(block)), 'Baslik, metin veya aksiyon alanlari bos kalmamalidir.'),
+      this.checklistItem('seo-title', 'SEO basligi', project.seo.title.trim().length >= 12, 'SEO basligi en az 12 karakter olmali.'),
+      this.checklistItem('seo-description', 'SEO aciklamasi', project.seo.description.trim().length >= 40, 'SEO aciklamasi arama ve sosyal paylasimlar icin doldurulmali.'),
+      this.checklistItem('languages', 'Dil pathleri', enabledLanguages.every((language) => pages.every((page) => !!page.localizedSlugs[language.code])), 'Aktif her dil icin sayfa pathi girilmeli.'),
+      this.checklistItem('links', 'Link formati', externalLinks.every((url) => /^https?:\/\//.test(url)), 'Harici linkler http veya https ile baslamali.'),
+      this.checklistItem('media-budget', 'Medya kotasi', mediaTotalMb <= project.costPolicy.mediaLimitMb, `Medya kullanimi ${project.costPolicy.mediaLimitMb} MB limitini asmamali.`),
+      this.checklistItem('hosting-strategy', 'Yayin stratejisi', project.costPolicy.deployStrategy === 'shared-route' || project.hostingTargets.length > 0, 'Dedicated hosting secildiyse hosting hedefi tanimli olmali.'),
+      this.checklistItem('forms', 'Form/lead hazirligi', blocks.some((block) => block.type === 'widget' && block.widgetKind === 'forms') || project.access.mode === 'public', 'Uyelikli akislarda lead veya form kurgusu onerilir.', 'warning')
+    ];
+  }
+
+  private patchSelectedSite(updater: (site: SiteProject) => SiteProject, options: { skipUndo?: boolean } = {}): void {
     const currentId = this.selectedSiteIdSignal();
+    const currentSite = this.projectsSignal().find((project) => project.id === currentId);
+    if (currentSite && !options.skipUndo) {
+      this.captureUndoState(currentSite);
+    }
     this.projectsSignal.update((projects) =>
       projects.map((project) => (project.id === currentId ? updater(project) : project))
     );
+    if (!options.skipUndo) {
+      this.redoStackSignal.set([]);
+    }
     this.persist();
   }
 
@@ -1011,6 +1279,36 @@ export class SiteBuilderStore {
     return globalThis.localStorage?.getItem(SIMULATION_KEY) ?? null;
   }
 
+  private loadWidgetKinds(key: string): WidgetKind[] {
+    const raw = globalThis.localStorage?.getItem(key);
+    if (!raw) {
+      return [];
+    }
+
+    return (JSON.parse(raw) as WidgetKind[]).filter(Boolean);
+  }
+
+  private persistWidgetKinds(key: string, values: WidgetKind[]): void {
+    globalThis.localStorage?.setItem(key, JSON.stringify(values));
+  }
+
+  private captureUndoState(site: SiteProject): void {
+    this.undoStackSignal.update((stack) => [this.snapshotSite(site), ...stack].slice(0, 25));
+  }
+
+  private snapshotSite(site: SiteProject): string {
+    const { versionHistory: _versionHistory, ...snapshot } = site;
+    return JSON.stringify({ ...snapshot, versionHistory: [] });
+  }
+
+  private replaceSiteFromSnapshot(snapshot: string): void {
+    const restored = this.normalizeProject(JSON.parse(snapshot) as SiteProject);
+    this.projectsSignal.update((projects) =>
+      projects.map((project) => (project.id === restored.id ? { ...restored, versionHistory: project.versionHistory } : project))
+    );
+    this.persist();
+  }
+
   private normalizeProject(project: SiteProject): SiteProject {
     const theme = this.normalizeTheme(project.theme);
     const languages = this.ensureDefaultLanguage(
@@ -1019,6 +1317,7 @@ export class SiteBuilderStore {
       )
     );
     const access = this.normalizeAccess(project.access);
+    const seo = this.normalizeSeo(project.seo, project.name, project.slug);
     const hostingTargets = (project.hostingTargets?.length
       ? project.hostingTargets
       : [this.createHostingTarget(project.slug, 'Production', 'firebase', '', project.slug, 'draft')]
@@ -1029,6 +1328,12 @@ export class SiteBuilderStore {
       ownerUid: project.ownerUid ?? project.ownerId,
       theme,
       access,
+      seo,
+      mediaAssets: (project.mediaAssets ?? []).map((asset) => this.normalizeMediaAsset(asset)),
+      formSubmissions: project.formSubmissions ?? this.defaultFormSubmissions(project.name),
+      metrics: this.normalizeMetrics(project.metrics, project),
+      costPolicy: this.normalizeCostPolicy(project.costPolicy),
+      versionHistory: project.versionHistory ?? [],
       languages,
       hostingTargets,
       publication: {
@@ -1046,7 +1351,10 @@ export class SiteBuilderStore {
   private normalizeTheme(theme: ThemeConfig): ThemeConfig {
     return {
       ...themePresets[0],
-      ...theme
+      ...theme,
+      buttonStyle: theme.buttonStyle ?? 'rounded',
+      cardStyle: theme.cardStyle ?? 'elevated',
+      spacingScale: theme.spacingScale ?? 'comfortable'
     };
   }
 
@@ -1063,6 +1371,111 @@ export class SiteBuilderStore {
     return {
       ...this.defaultAccessSettings(),
       ...access
+    };
+  }
+
+  private defaultSeoSettings(siteName: string, slug: string): SeoSettings {
+    const safeName = siteName.trim() || 'Yeni Site';
+
+    return {
+      title: `${safeName} | Web Creator`,
+      description: `${safeName} icin hazirlanan modern, responsive ve kolay yonetilebilir web sitesi.`,
+      keywords: `${safeName}, web sitesi, landing page`,
+      ogImage: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1200&q=80',
+      canonicalUrl: `https://web-creator-anilyilmaz.web.app/sites/${slug}`,
+      noIndex: false
+    };
+  }
+
+  private normalizeSeo(seo: SeoSettings | undefined, siteName: string, slug: string): SeoSettings {
+    return {
+      ...this.defaultSeoSettings(siteName, slug),
+      ...seo
+    };
+  }
+
+  private normalizeMediaAsset(asset: MediaAsset): MediaAsset {
+    return {
+      id: asset.id || `media-${crypto.randomUUID()}`,
+      name: asset.name?.trim() || 'Medya',
+      url: asset.url || '',
+      altText: asset.altText || asset.name || 'Medya',
+      type: asset.type || 'image',
+      sizeKb: Math.max(0, Number(asset.sizeKb) || 0),
+      width: asset.width,
+      height: asset.height,
+      optimized: asset.optimized ?? asset.type === 'image',
+      createdAt: asset.createdAt || new Date().toISOString()
+    };
+  }
+
+  private defaultFormSubmissions(siteName: string): FormSubmission[] {
+    return [
+      {
+        id: `lead-${crypto.randomUUID()}`,
+        formName: 'Iletisim Formu',
+        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 18).toISOString(),
+        status: 'new',
+        values: {
+          Ad: 'Demo Lead',
+          'E-posta': 'lead@example.com',
+          Site: siteName
+        }
+      },
+      {
+        id: `lead-${crypto.randomUUID()}`,
+        formName: 'Teklif Formu',
+        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+        status: 'contacted',
+        values: {
+          Ad: 'Ornek Musteri',
+          'E-posta': 'musteri@example.com',
+          Not: 'Kurumsal site paketi ile ilgileniyor.'
+        }
+      }
+    ];
+  }
+
+  private defaultMetrics(): SiteMetrics {
+    return {
+      views: 1240,
+      visitors: 860,
+      leads: 42,
+      conversionRate: 4.8,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  private normalizeMetrics(metrics: SiteMetrics | undefined, project: SiteProject): SiteMetrics {
+    const blockCount = project.pages.reduce((total, page) => total + page.blocks.length, 0);
+    const fallback = this.defaultMetrics();
+
+    return {
+      views: metrics?.views ?? Math.max(240, project.pages.length * 180 + blockCount * 35),
+      visitors: metrics?.visitors ?? Math.max(120, project.pages.length * 120 + blockCount * 18),
+      leads: metrics?.leads ?? project.formSubmissions?.length ?? fallback.leads,
+      conversionRate: metrics?.conversionRate ?? fallback.conversionRate,
+      updatedAt: metrics?.updatedAt ?? new Date().toISOString()
+    };
+  }
+
+  private defaultCostPolicy(): SiteCostPolicy {
+    return {
+      deployStrategy: 'shared-route',
+      mediaLimitMb: 50,
+      auditRetentionDays: 90,
+      monthlyFunctionBudget: 10,
+      summaryFirstReads: true
+    };
+  }
+
+  private normalizeCostPolicy(policy: SiteCostPolicy | undefined): SiteCostPolicy {
+    return {
+      ...this.defaultCostPolicy(),
+      ...policy,
+      mediaLimitMb: Math.max(5, Number(policy?.mediaLimitMb ?? 50)),
+      auditRetentionDays: Math.max(7, Number(policy?.auditRetentionDays ?? 90)),
+      monthlyFunctionBudget: Math.max(1, Number(policy?.monthlyFunctionBudget ?? 10))
     };
   }
 
@@ -1151,7 +1564,9 @@ export class SiteBuilderStore {
       defaultUrl: provider === 'firebase' ? `https://${safeSiteId}.web.app` : '',
       customDomain: '',
       status,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      domainStatus: 'not-started',
+      dnsInstructions: ''
     };
   }
 
@@ -1168,7 +1583,13 @@ export class SiteBuilderStore {
       customDomain: target.customDomain || '',
       status: target.status || 'draft',
       createdAt: target.createdAt || new Date().toISOString(),
-      lastPublishedAt: target.lastPublishedAt
+      lastPublishedAt: target.lastPublishedAt,
+      domainStatus: target.domainStatus ?? (target.customDomain ? 'pending-dns' : 'not-started'),
+      dnsInstructions:
+        target.dnsInstructions ??
+        (target.customDomain
+          ? `DNS CNAME veya A kayitlarini Firebase Hosting yonlendirmelerine gore ${target.customDomain} icin dogrulayin.`
+          : '')
     };
   }
 
@@ -1342,6 +1763,85 @@ export class SiteBuilderStore {
     const projects = this.projectsSignal();
     globalThis.localStorage?.setItem(PROJECTS_KEY, JSON.stringify(projects));
     this.firebaseData.saveProjects(projects);
+    this.lastSavedAtSignal.set(new Date().toISOString());
+  }
+
+  private collectLinks(project: SiteProject): string[] {
+    return project.pages.flatMap((page) =>
+      page.blocks.flatMap((block) => {
+        const links = [block.linkUrl];
+
+        if (block.type === 'hero') {
+          links.push(...block.buttons.map((button) => button.url));
+        }
+
+        if (block.type === 'features') {
+          links.push(...block.items.map((item) => item.linkUrl));
+        }
+
+        if (block.type === 'cta') {
+          links.push(block.actionUrl);
+        }
+
+        if (block.type === 'widget') {
+          links.push(block.actionUrl, ...block.linkUrls);
+        }
+
+        if (block.type === 'image') {
+          links.push(block.linkUrl);
+        }
+
+        return links.filter(Boolean);
+      })
+    );
+  }
+
+  private blockHasContent(block: PageBlock): boolean {
+    if (block.type === 'hero') {
+      return !!(block.heading.trim() || block.body.trim() || block.buttons.some((button) => button.label.trim()));
+    }
+
+    if (block.type === 'text') {
+      return !!block.body.trim();
+    }
+
+    if (block.type === 'features') {
+      return block.items.some((item) => item.title.trim() || item.body.trim());
+    }
+
+    if (block.type === 'table') {
+      return block.columns.length > 0 && block.rows.some((row) => row.cells.some((cell) => cell.trim()));
+    }
+
+    if (block.type === 'image') {
+      return !!(block.imageUrl.trim() || block.altText.trim());
+    }
+
+    if (block.type === 'cta') {
+      return !!(block.heading.trim() || block.body.trim() || block.actionLabel.trim());
+    }
+
+    return !!(
+      block.title.trim() ||
+      block.subtitle.trim() ||
+      block.body.trim() ||
+      block.items.some((item) => item.trim())
+    );
+  }
+
+  private checklistItem(
+    id: string,
+    label: string,
+    condition: unknown,
+    details: string,
+    fallbackStatus: Exclude<ChecklistStatus, 'pass'> = 'fail'
+  ): PublicationChecklistItem {
+    return {
+      id,
+      label,
+      status: condition ? 'pass' : fallbackStatus,
+      details
+    };
   }
 
   private persistCustomThemes(): void {

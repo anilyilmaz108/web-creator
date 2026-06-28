@@ -55,12 +55,15 @@ Builder ekrani uc bolumden olusur:
 - Sol panel: Sayfalar, ana blocklar ve component kutuphanesi.
 - Orta alan: Web, tablet ve mobil canli onizleme.
 - Sag panel: Sekmeli `Block`, `Tema`, `Site` inspector.
+- Ust aksiyon bar: `Geri Al`, `Ileri Al`, son kayit zamani ve yayin aksiyonlari.
 
 ### Sayfa ve Block
 
 - `Sayfalar` alanindan yeni route eklenir.
+- `Hazir Section Setleri` ile landing, guven/icerik veya lead capture akislari tek tikla eklenir.
 - `Ana Blocklar` ile hero, text, cards, table, image ve CTA eklenir.
 - `Component Kutuphanesi` ile form, gallery, tabs, navbar, charts gibi widgetlar eklenir.
+- Sık kullanilan componentler favoriye alinabilir; son kullanilanlar otomatik kisayol olarak gorunur.
 - `Yapi Sirasi` alaninda blocklar secilir, silinir veya siralanir.
 - Canli preview icindeki bir componente tiklayinca ilgili block otomatik secilir.
 - Hover durumunda component uzerinde `Edit` rozeti gorunur.
@@ -71,11 +74,30 @@ Sag paneldeki `Tema` bolumunden:
 
 - Hazir tema secilir.
 - Accent, background, surface, font, radius ve gap degerleri degistirilir.
+- Buton formu, kart stili ve spacing olcegiyle sitenin genel hissi hizli ayarlanir.
 - Custom tema kaydedilir ve daha sonra tekrar uygulanir.
 
 ### Site Ayarlari
 
 `Site Ayarlari` bolumu site seviyesindeki urun kararlarini tutar.
+
+#### Yayin Kontrol Listesi
+
+Builder, yayina gondermeden once su kalite sinyallerini kontrol eder:
+
+- Site adi, slug ve sayfa varligi
+- Bos icerik alanlari
+- SEO basligi ve aciklamasi
+- Aktif diller icin path girisi
+- Harici link formati
+- Medya kotasi
+- Hosting/yayin stratejisi
+
+Eksikler site panelinde `pass`, `warning` veya `fail` olarak gorunur. `fail` olan maddeler admin onayinda da gorunur.
+
+#### SEO ve Paylasim
+
+Site seviyesinde SEO basligi, aciklama, anahtar kelimeler, OG gorsel, canonical URL ve `noIndex` ayari tutulur. Public route acildiginda title, description, keywords, OG ve robots meta tag'leri bu alandan guncellenir.
 
 #### Erisim Modu
 
@@ -107,8 +129,21 @@ Her site birden fazla hosting hedefine sahip olabilir. Her hedefte su alanlar tu
 - Default URL
 - Custom domain
 - Status: `draft`, `provisioning`, `active`, `paused`, `expired`
+- Domain status: `not-started`, `pending-dns`, `verified`, `failed`
+- DNS yonlendirme notu
 
 Bu MVP'de deploy islemi simule edilir. Superadmin onay verdiginde secili hedef `active` olur ve yayin URL bilgisi kaydedilir.
+
+#### Medya ve Maliyet
+
+- `Medya Kutuphanesi` siteye ait gorsel, video veya dokuman URL'lerini ve KB degerlerini tutar.
+- `Maliyet Politikasi` deploy stratejisi, medya kotasi, audit log saklama gunu, aylik function butcesi ve dashboardlarda ozet veri okuma kararini tutar.
+- Varsayilan deploy stratejisi `shared-route` olarak gelir. Bu, MVP ve dusuk trafik icin tek Firebase Hosting altinda `/sites/:slug` yayinlamayi tercih eder.
+- `dedicated-hosting`, her site icin ayri Firebase Hosting site hedefi gerektiren premium/kurumsal senaryolara ayrilabilir.
+
+#### Versiyon Gecmisi
+
+`Versiyon Gecmisi` alanindan manuel snapshot alinabilir. Gerekirse onceki snapshot yuklenerek site tasarimi geri getirilebilir. `Geri Al` ve `Ileri Al` ise o anki duzenleme oturumunda hizli geri/ileri hareketi saglar.
 
 ## Yayin Akisi
 
@@ -130,6 +165,8 @@ Bu ekranda:
 - Sayfa, block, dil, lead ve hosting kartlari
 - Trafik simulasyon grafigi
 - Sayfa ve component tablolari
+- Lead tablosu ve lead durum guncelleme
+- SEO, medya kullanimi, maliyet modu ve log saklama ozeti
 - Siteye ait islem gecmisi
 - Builder'a gecis ve yayin durdurma/yayina gonderme aksiyonlari
 
@@ -149,6 +186,7 @@ Loglanan ornek islemler:
 
 - Site, sayfa, block ve widget olusturma/silme
 - Tema, dil, access ve hosting guncelleme
+- SEO, medya, maliyet politikasi, versiyon snapshot ve lead durum guncelleme
 - Yayina gonderme, onay, red ve durdurma
 - Superadmin simulasyon baslatma/bitirme
 
@@ -168,6 +206,8 @@ Mevcut MVP verileri `localStorage` uzerinden saklar:
 
 - Projeler: `web-creator-projects`
 - Custom temalar: `web-creator-custom-themes`
+- Favori componentler: `web-creator-favorite-widgets`
+- Son kullanilan componentler: `web-creator-recent-widgets`
 - Kullanicilar: `web-creator-users`
 - Session: `web-creator-session`
 

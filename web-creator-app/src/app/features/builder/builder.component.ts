@@ -7,16 +7,21 @@ import { CatalogItem } from '../../core/data/component-catalog';
 import {
   ActionButtonStyle,
   AnimationPreset,
+  DeployStrategy,
   FontStylePreset,
   HostingProvider,
   HoverEffectPreset,
   LayoutMode,
+  MediaAsset,
   PageBlock,
+  SeoSettings,
   SiteAccessMode,
   SiteAccessSettings,
+  SiteCostPolicy,
   TextAlignPreset,
   ThemeConfig,
   ViewportMode,
+  WidgetKind,
   WidthPreset
 } from '../../core/models/builder.models';
 import { MockAuthService } from '../../core/services/mock-auth.service';
@@ -43,6 +48,28 @@ export class BuilderComponent {
   readonly viewport = this.store.viewport;
   readonly presetThemes = this.store.themePresets;
   readonly customThemes = this.store.customThemes;
+  readonly canUndo = this.store.canUndo;
+  readonly canRedo = this.store.canRedo;
+  readonly lastSavedAt = this.store.lastSavedAt;
+  readonly publicationChecklist = computed(() => {
+    const site = this.selectedSite();
+    return site ? this.store.publicationChecklist(site) : [];
+  });
+  readonly checklistPassed = computed(() => this.publicationChecklist().filter((item) => item.status === 'pass').length);
+  readonly mediaUsageMb = computed(() => {
+    const site = this.selectedSite();
+    return site ? site.mediaAssets.reduce((total, asset) => total + asset.sizeKb, 0) / 1024 : 0;
+  });
+  readonly favoriteCatalog = computed(() =>
+    this.store.favoriteWidgetKinds()
+      .map((kind) => this.store.componentCatalog.find((item) => item.kind === kind))
+      .filter((item): item is CatalogItem => !!item)
+  );
+  readonly recentCatalog = computed(() =>
+    this.store.recentWidgetKinds()
+      .map((kind) => this.store.componentCatalog.find((item) => item.kind === kind))
+      .filter((item): item is CatalogItem => !!item)
+  );
   readonly viewports: ViewportMode[] = ['desktop', 'tablet', 'mobile'];
   readonly viewportOptions = [
     { value: 'desktop' as ViewportMode, label: 'Web', size: '1440px', description: 'Tarayici gorunumu' },
@@ -73,6 +100,14 @@ export class BuilderComponent {
     { value: 'signup', label: 'Kayit ve giris' }
   ];
   readonly hostingProviderOptions: HostingProvider[] = ['firebase', 'external'];
+  readonly deployStrategyOptions: DeployStrategy[] = ['shared-route', 'dedicated-hosting'];
+  readonly themeButtonStyleOptions: Array<NonNullable<ThemeConfig['buttonStyle']>> = ['rounded', 'pill', 'sharp'];
+  readonly themeCardStyleOptions: Array<NonNullable<ThemeConfig['cardStyle']>> = ['flat', 'outlined', 'elevated'];
+  readonly spacingScaleOptions: Array<NonNullable<ThemeConfig['spacingScale']>> = [
+    'compact',
+    'comfortable',
+    'spacious'
+  ];
   readonly formFieldOptions = [
     'text',
     'email',
@@ -117,6 +152,14 @@ export class BuilderComponent {
     firebaseProjectId: '',
     firebaseSiteId: ''
   };
+  newMedia = {
+    name: '',
+    url: '',
+    altText: '',
+    type: 'image' as MediaAsset['type'],
+    sizeKb: 240
+  };
+  snapshotName = '';
   customThemeName = '';
   catalogSearch = '';
   activeCatalogCategory = 'All';
@@ -240,6 +283,31 @@ export class BuilderComponent {
     this.store.updateTheme({ [field]: value } as Partial<ThemeConfig>);
   }
 
+  updateSeoField<K extends keyof SeoSettings>(field: K, value: SeoSettings[K]): void {
+    this.store.updateSeo({ [field]: value } as Partial<SeoSettings>);
+  }
+
+  updateCostPolicy<K extends keyof SiteCostPolicy>(field: K, value: SiteCostPolicy[K]): void {
+    this.store.updateCostPolicy({ [field]: value } as Partial<SiteCostPolicy>);
+  }
+
+  undo(): void {
+    this.store.undoSelectedSite();
+  }
+
+  redo(): void {
+    this.store.redoSelectedSite();
+  }
+
+  saveSnapshot(): void {
+    this.store.saveVersionSnapshot(this.snapshotName.trim() || 'Manuel snapshot');
+    this.snapshotName = '';
+  }
+
+  restoreSnapshot(snapshotId: string): void {
+    this.store.restoreVersionSnapshot(snapshotId);
+  }
+
   addPage(): void {
     if (!this.newPageName.trim()) {
       return;
@@ -344,12 +412,72 @@ export class BuilderComponent {
     return customDomain || defaultUrl || 'Yayin URL bekliyor';
   }
 
+  formatDate(value?: string | null): string {
+    if (!value) {
+      return '-';
+    }
+
+    return new Intl.DateTimeFormat('tr-TR', {
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    }).format(new Date(value));
+  }
+
+  checklistClass(status: string): string {
+    if (status === 'pass') {
+      return 'border-emerald-300/20 bg-emerald-300/10 text-emerald-100';
+    }
+
+    if (status === 'warning') {
+      return 'border-amber-300/20 bg-amber-300/10 text-amber-100';
+    }
+
+    return 'border-rose-300/20 bg-rose-300/10 text-rose-100';
+  }
+
   selectCatalogCategory(category: string): void {
     this.activeCatalogCategory = category;
   }
 
   addWidget(kind: CatalogItem['kind']): void {
     this.store.addWidget(kind);
+  }
+
+  addSectionTemplate(templateId: string): void {
+    this.store.addSectionTemplate(templateId);
+  }
+
+  toggleFavoriteWidget(kind: WidgetKind): void {
+    this.store.toggleFavoriteWidget(kind);
+  }
+
+  isFavoriteWidget(kind: WidgetKind): boolean {
+    return this.store.favoriteWidgetKinds().includes(kind);
+  }
+
+  addMediaAsset(): void {
+    if (!this.newMedia.name.trim() || !this.newMedia.url.trim()) {
+      return;
+    }
+
+    this.store.addMediaAsset({
+      ...this.newMedia,
+      name: this.newMedia.name.trim(),
+      url: this.newMedia.url.trim(),
+      altText: this.newMedia.altText.trim() || this.newMedia.name.trim(),
+      sizeKb: Number(this.newMedia.sizeKb) || 0
+    });
+    this.newMedia = {
+      name: '',
+      url: '',
+      altText: '',
+      type: 'image',
+      sizeKb: 240
+    };
+  }
+
+  removeMediaAsset(assetId: string): void {
+    this.store.removeMediaAsset(assetId);
   }
 
   applyThemePalette(color: string): void {

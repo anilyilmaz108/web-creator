@@ -43,6 +43,22 @@
       <span>14 Gun Icinde Biten</span>
       <strong>{{ expiringSoonCount() }}</strong>
     </article>
+    <article>
+      <span>Toplam Lead</span>
+      <strong>{{ totalLeadCount() }}</strong>
+    </article>
+    <article>
+      <span>Medya Varligi</span>
+      <strong>{{ mediaAssetCount() }}</strong>
+    </article>
+    <article>
+      <span>Yayin Hazirligi</span>
+      <strong>{{ averageChecklistScore() }}%</strong>
+    </article>
+    <article>
+      <span>Shared Route</span>
+      <strong>{{ sharedRouteCount() }}</strong>
+    </article>
   </div>
 
   <div class="layout">
@@ -79,6 +95,21 @@
             <div class="project-card__meta">
               <span>Onay bitisi</span>
               <strong>{{ formatDate(project.publication.approvedUntil) }}</strong>
+            </div>
+
+            <div class="project-card__meta">
+              <span>Yayin hazirligi</span>
+              <strong>{{ checklistScore(project) }}%</strong>
+            </div>
+
+            <div class="project-card__meta">
+              <span>Lead / Medya</span>
+              <strong>{{ project.formSubmissions.length }} / {{ mediaUsage(project) }}</strong>
+            </div>
+
+            <div class="project-card__meta">
+              <span>Maliyet modu</span>
+              <strong>{{ project.costPolicy.deployStrategy }}</strong>
             </div>
 
             <div class="project-card__actions">

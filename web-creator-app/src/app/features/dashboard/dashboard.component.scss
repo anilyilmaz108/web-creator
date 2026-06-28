@@ -65,7 +65,7 @@
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 1rem;
   margin: 1rem 0;
 }
@@ -159,9 +159,7 @@
 .project-card p,
 .project-card__meta strong,
 .hosting-list p {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .project-card__meta strong {
@@ -257,6 +255,7 @@
 }
 
 .log-list__meta small {
+  min-width: 0;
   overflow: hidden;
   text-align: right;
   text-overflow: ellipsis;

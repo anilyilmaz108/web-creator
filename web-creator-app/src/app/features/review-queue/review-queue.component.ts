@@ -3,6 +3,7 @@ import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
+import { SiteProject } from '../../core/models/builder.models';
 import { MockAuthService } from '../../core/services/mock-auth.service';
 import { SiteBuilderStore } from '../../core/services/site-builder.store';
 
@@ -35,5 +36,14 @@ export class ReviewQueueComponent {
       project?.hostingTargets[0];
 
     return target?.customDomain || target?.defaultUrl || target?.firebaseSiteId || 'Hosting secilmedi';
+  }
+
+  checklistScore(project: SiteProject): number {
+    const checks = this.store.publicationChecklist(project);
+    if (!checks.length) {
+      return 0;
+    }
+
+    return Math.round((checks.filter((item) => item.status === 'pass').length / checks.length) * 100);
   }
 }

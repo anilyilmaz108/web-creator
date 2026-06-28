@@ -7,16 +7,19 @@ Angular + Firebase odakli, WordPress/Drupal benzeri bir site olusturucu MVP'si.
 - Rol bazli giris: `superadmin`, `admin`, `moderator`, `visitor`
 - Giris yapmadan public site olusturma akisi
 - Sol panelden generic component ekleme
+- Hazir section setleri, favori componentler ve son kullanilan component kisayollari
 - Sayfa olusturma ve route mantigi
-- Block siralama, silme ve secili block duzenleme
-- Tema presetleri ve temel tema ayarlari
+- Block siralama, silme, tiklayarak secme, undo/redo ve versiyon snapshotlari
+- Tema presetleri, custom temalar, buton/kart/spacing ozellestirmeleri
+- SEO, medya kutuphanesi, yayin kontrol listesi ve maliyet politikasi
 - Site seviyesinde uyelik modu: herkese acik, sadece giris, kayit ve giris
 - TR/EN ve ek diller icin path/slug ayarlari
 - Site basina coklu hosting hedefi kaydi
+- Custom domain DNS durum notlari
 - Web, tablet, mobil builder gorunumleri
 - Yayin talebi gonderme, admin/superadmin onayi ve yayin durdurma
 - Kullanici ve superadmin dashboardlari
-- Siteye ozel admin dashboardu
+- Lead, medya, SEO ve maliyet ozetli siteye ozel admin dashboardu
 - Superadmin simulasyon modu ve islem gecmisi
 - Public site gorunumu
 
@@ -65,11 +68,11 @@ Mevcut Firebase entegrasyonu:
 
 Sonraki iterasyonda:
 
-1. Firebase Console'da Authentication providerlarini acma
-2. `npm run firebase:bootstrap` ile ilk superadmin/admin hesaplarini seed etme
-3. Cloud Functions deploy icin Blaze plan kararini verme
-4. Gorsel yukleme icin Firebase Storage
-5. Firebase Hosting deploy tetigi ve sure sonu kontrolleri icin Cloud Functions
+1. Gorsel yukleme icin Firebase Storage
+2. Firebase Hosting deploy tetigi ve sure sonu kontrolleri icin Cloud Functions/CI otomasyonu
+3. Shared-route yayin stratejisini varsayilan tutup dedicated hosting'i premium plana alma
+4. Form cevaplari icin webhook/e-posta entegrasyonu
+5. Kota asimi ve butce uyarilarini otomatik bildirimlere baglama
 
 NextJS + Docker su asamada zorunlu degildir; ozel deploy orchestration, faturalama veya PostgreSQL raporlama ihtiyaci artarsa ikinci fazda eklenebilir.
 

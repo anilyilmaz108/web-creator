@@ -11,6 +11,8 @@ Temel deger onerisi:
 - Her kullanici birden fazla siteye, her site birden fazla hosting hedefine sahip olabilir.
 - Site, herkese acik veya uyelik gerektiren yapida calisabilir.
 - TR/EN ve ek diller route/path seviyesinde yonetilebilir.
+- SEO, medya, lead ve maliyet ayarlari tek panelden yonetilebilir.
+- Yayin kontrol listesi admin onay surecini daha hizli ve tutarli hale getirir.
 - Superadmin her siteyi izleyebilir, site admini gibi simulasyon yapabilir ve audit loglari inceleyebilir.
 
 ## Hedef Musteriler
@@ -28,7 +30,10 @@ Bu repo icindeki MVP su alanlari kapsar:
 - Rol bazli demo giris
 - Site portfoyu dashboardu
 - Visual builder ve responsive preview
+- Hazir section setleri, favori componentler, son kullanilanlar
+- Undo/redo ve manuel versiyon snapshotlari
 - Tema ve component ozellestirme
+- SEO, medya kutuphanesi, form leadleri ve maliyet politikasi
 - Site seviyesinde uyelik modu
 - TR/EN ve ek dil/path ayarlari
 - Hosting hedefi kaydi
@@ -37,6 +42,7 @@ Bu repo icindeki MVP su alanlari kapsar:
 - Site admin dashboardu
 - Superadmin simulasyonu
 - Audit log
+- Review queue icinde yayin kontrol skoru
 - Public site gorunumu
 - Kullanim ve is dokumani
 
@@ -54,6 +60,8 @@ Kapsam:
 - Firebase Hosting multi-site ile yayin
 - Cloud Functions ile yayin onayi, deploy tetikleme ve sure bitimi kontrolu
 - Firestore audit log koleksiyonu
+- Varsayilan `shared-route` yayin modeli: dusuk maliyet icin tek Hosting altinda `/sites/:slug`
+- Premium `dedicated-hosting` modeli: ozel domain, ozel hosting hedefi veya kurumsal izolasyon gereken siteler
 
 Bu fazda NextJS backend ve Docker sart degildir. Sunucu bakimi olmadan ilerlenebilir. Gercekten gizli kalmasi gereken admin islemleri Cloud Functions tarafina alinmistir; production deploy icin Firebase Blaze plan karari gerekir.
 
@@ -67,6 +75,8 @@ Kapsam:
 - Custom domain dogrulama
 - Form cevaplari ve lead yonetimi
 - Audit log
+- Medya kotasi, function butcesi ve audit retention politikasi
+- Dashboardlarda summary-first reads yaklasimi
 
 ### Faz 3: Gelismis Platform
 
@@ -111,6 +121,7 @@ Olasiliklar:
 
 - Site basina aylik ucret
 - Aktif hosting hedefi basina ucret
+- Dedicated hosting veya custom domain icin premium ek ucret
 - Ajans paketi: daha fazla site, daha fazla kullanici, white-label
 - Custom domain ve storage kotasi icin ek ucret
 - Template/component marketplace komisyonu
@@ -128,17 +139,29 @@ Ornek paketleme:
 1. Kullanici site olusturur.
 2. Builder ile sayfa, tema, dil ve hosting ayarlarini tamamlar.
 3. Yayin talebi olusturur.
-4. Superadmin kalite, icerik ve hosting bilgilerini kontrol eder.
+4. Superadmin yayin kontrol skoru, icerik, SEO, medya kotasi ve hosting bilgilerini kontrol eder.
 5. Onaylanirsa hosting hedefi aktif olur.
 6. Site sahibi aktif hosting uzerinden yeni yayinlari gunceller.
 7. Onay suresi bitmeden yenileme veya tekrar onay sureci calisir.
+
+## Maliyet Kontrol Stratejisi
+
+Mevcut yapiyi bozmadan maliyeti dusuk tutmak icin onerilen varsayilanlar:
+
+- Public siteleri ilk fazda tek Firebase Hosting altinda `/sites/:slug` ile yayinla.
+- Her site icin ayri Firebase Hosting hedefini sadece premium/custom-domain ihtiyacinda ac.
+- Dashboardlarda liste ekranlari icin once ozet alanlari kullan; detay dokumanlarini yalnizca detay ekraninda oku.
+- Audit log saklama suresini paket bazli sinirla. Baslangic icin 90 gun yeterlidir.
+- Medya yuklemelerinde Storage kullanilacaksa site basina MB kotasi ve gorsel optimizasyonu zorunlu olsun.
+- Form cevaplarini Firestore'da tutarken eski leadleri arsivle veya export et.
+- Cloud Functions butcesi ve kritik function cagri sayisi icin uyarilar olustur.
 
 ## Riskler ve Onlemler
 
 - Yetkisiz yayin: Superadmin onay ve audit log ile kontrol edilir.
 - Maliyet artisi: Site, storage, bandwidth ve function kullanimi kota ile sinirlanir.
 - Domain karmasasi: Custom domain dogrulama ve DNS kontrol ekrani gerekir.
-- Icerik kalitesi: Onay kuyrugu ve preview ekranlariyla incelenir.
+- Icerik kalitesi: Yayin kontrol listesi, onay kuyrugu ve canli builder gorunumuyle incelenir.
 - Veri kaybi: Firestore yedekleme ve export stratejisi planlanir.
 
 ## Basari Metrikleri

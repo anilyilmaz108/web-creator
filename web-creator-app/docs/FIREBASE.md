@@ -97,6 +97,13 @@ Kullanici olusturma su anda Firebase client SDK ile secondary app uzerinden yapi
 
 ## Coklu Hosting
 
+Maliyet dusuk kalsin diye varsayilan model `shared-route` olabilir:
+
+- Tek Firebase Hosting site: `web-creator-anilyilmaz.web.app`
+- Her musteri sitesi public route ile yayinlanir: `/sites/:slug`
+- Firestore dokumaninda `publication.publishedUrl` ve `costPolicy.deployStrategy` tutulur.
+- Dedicated hosting sadece custom domain, premium paket veya izolasyon ihtiyacinda acilir.
+
 Her musterinin sitesini ayri Firebase Hosting site olarak yayinlamak icin:
 
 ```bash
@@ -106,3 +113,12 @@ firebase deploy --only hosting:customer-site --project web-creator-anilyilmaz
 ```
 
 Bu MVP'de siteye ozel hosting hedefleri uygulama icinde metadata olarak tutulur. Gercek deploy otomasyonu icin Cloud Functions veya CI/CD pipeline bir sonraki fazda eklenmelidir.
+
+## Maliyet Dostu Ayarlar
+
+- `costPolicy.mediaLimitMb`: Site bazli medya kotasi.
+- `costPolicy.auditRetentionDays`: Audit log saklama suresi.
+- `costPolicy.monthlyFunctionBudget`: Function kullanimi icin takip edilecek aylik butce.
+- `costPolicy.summaryFirstReads`: Dashboardlarda once ozet veri okunmasi.
+
+Bu alanlar Firestore dokumaninda tutulur; ileride Cloud Functions tarafinda kota kontrolu ve otomatik uyarilar icin kullanilabilir.

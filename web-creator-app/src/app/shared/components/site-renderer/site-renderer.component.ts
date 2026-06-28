@@ -129,6 +129,40 @@ export class SiteRendererComponent {
     return `linear-gradient(rgba(15,23,42,${overlayOpacity}), rgba(15,23,42,${overlayOpacity})), url(${block.backgroundImageUrl})`;
   }
 
+  sectionGap(): number {
+    const scale = {
+      compact: 0.72,
+      comfortable: 1,
+      spacious: 1.35
+    }[this.theme.spacingScale ?? 'comfortable'];
+
+    return Math.round(this.theme.sectionGap * scale);
+  }
+
+  buttonRadius(): string {
+    return {
+      sharp: '6px',
+      rounded: '14px',
+      pill: '999px'
+    }[this.theme.buttonStyle ?? 'rounded'];
+  }
+
+  cardShadow(): string {
+    if (this.theme.cardStyle === 'flat') {
+      return 'none';
+    }
+
+    if (this.theme.cardStyle === 'outlined') {
+      return '0 0 0 1px rgba(15,23,42,0.04)';
+    }
+
+    return this.theme.shadowStyle === 'soft'
+      ? '0 24px 60px rgba(15,23,42,0.08)'
+      : this.theme.shadowStyle === 'medium'
+        ? '0 28px 70px rgba(15,23,42,0.12)'
+        : '0 34px 84px rgba(15,23,42,0.18)';
+  }
+
   widgetMode(kind: WidgetKind): 'content' | 'form' | 'media' | 'navigation' | 'feedback' | 'data' | 'utility' {
     if (
       [
@@ -218,9 +252,9 @@ export class SiteRendererComponent {
 
   actionButtonClasses(button: ActionButton): string {
     return {
-      solid: 'text-white shadow-lg',
-      outline: 'border bg-transparent',
-      ghost: 'bg-transparent'
+      solid: 'themed-button text-white shadow-lg',
+      outline: 'themed-button border bg-transparent',
+      ghost: 'themed-button bg-transparent'
     }[button.style];
   }
 

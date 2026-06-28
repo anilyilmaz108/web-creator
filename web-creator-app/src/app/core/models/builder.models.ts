@@ -1,4 +1,4 @@
-export type SiteStatus = 'draft' | 'pending' | 'published';
+export type SiteStatus = 'draft' | 'pending' | 'published' | 'paused' | 'expired';
 export type ViewportMode = 'desktop' | 'tablet' | 'mobile';
 export type LayoutMode = 'stack' | 'split' | 'grid-2' | 'grid-3' | 'grid-4';
 export type AnimationPreset = 'none' | 'fade-up' | 'fade-in' | 'zoom-in' | 'slide-left';
@@ -15,6 +15,8 @@ export type PublicationRequestStatus = 'none' | 'pending' | 'approved' | 'reject
 export type HostingProvider = 'firebase' | 'external';
 export type HostingStatus = 'draft' | 'provisioning' | 'active' | 'paused' | 'expired';
 export type AuditLogLevel = 'info' | 'warning' | 'success' | 'danger';
+export type ChecklistStatus = 'pass' | 'warning' | 'fail';
+export type DeployStrategy = 'shared-route' | 'dedicated-hosting';
 
 export type WidgetKind =
   | 'accordion'
@@ -101,6 +103,9 @@ export interface ThemeConfig {
   pageWidth: number;
   sectionGap: number;
   shadowStyle: 'soft' | 'medium' | 'strong';
+  buttonStyle?: 'rounded' | 'pill' | 'sharp';
+  cardStyle?: 'flat' | 'outlined' | 'elevated';
+  spacingScale?: 'compact' | 'comfortable' | 'spacious';
 }
 
 export interface TableRow {
@@ -248,6 +253,8 @@ export interface HostingTarget {
   status: HostingStatus;
   createdAt: string;
   lastPublishedAt?: string;
+  domainStatus?: 'not-started' | 'pending-dns' | 'verified' | 'failed';
+  dnsInstructions?: string;
 }
 
 export interface PublicationSettings {
@@ -279,6 +286,68 @@ export interface AuditLogEntry {
   details: string;
 }
 
+export interface SeoSettings {
+  title: string;
+  description: string;
+  keywords: string;
+  ogImage: string;
+  canonicalUrl: string;
+  noIndex: boolean;
+}
+
+export interface MediaAsset {
+  id: string;
+  name: string;
+  url: string;
+  altText: string;
+  type: 'image' | 'video' | 'document';
+  sizeKb: number;
+  width?: number;
+  height?: number;
+  optimized: boolean;
+  createdAt: string;
+}
+
+export interface FormSubmission {
+  id: string;
+  formName: string;
+  createdAt: string;
+  status: 'new' | 'contacted' | 'closed';
+  values: Record<string, string>;
+}
+
+export interface SiteMetrics {
+  views: number;
+  visitors: number;
+  leads: number;
+  conversionRate: number;
+  updatedAt: string;
+}
+
+export interface SiteCostPolicy {
+  deployStrategy: DeployStrategy;
+  mediaLimitMb: number;
+  auditRetentionDays: number;
+  monthlyFunctionBudget: number;
+  summaryFirstReads: boolean;
+}
+
+export interface PublicationChecklistItem {
+  id: string;
+  label: string;
+  status: ChecklistStatus;
+  details: string;
+}
+
+export interface SiteVersionSnapshot {
+  id: string;
+  name: string;
+  createdAt: string;
+  actorId: string;
+  reason: string;
+  snapshot: string;
+}
+
 export interface SiteProject {
   id: string;
   name: string;
@@ -288,6 +357,12 @@ export interface SiteProject {
   status: SiteStatus;
   theme: ThemeConfig;
   access: SiteAccessSettings;
+  seo: SeoSettings;
+  mediaAssets: MediaAsset[];
+  formSubmissions: FormSubmission[];
+  metrics: SiteMetrics;
+  costPolicy: SiteCostPolicy;
+  versionHistory: SiteVersionSnapshot[];
   languages: LanguageConfig[];
   hostingTargets: HostingTarget[];
   pages: SitePage[];
