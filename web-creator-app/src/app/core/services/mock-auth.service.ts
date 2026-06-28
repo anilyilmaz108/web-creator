@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 
 import { demoUsers } from '../data/demo-data';
 import { UserProfile, UserRole } from '../models/auth.models';
+import { AuditLogService } from './audit-log.service';
 import { FirebaseDataService } from './firebase-data.service';
 
 const USERS_KEY = 'web-creator-users';
@@ -9,6 +10,7 @@ const SESSION_KEY = 'web-creator-session';
 
 @Injectable({ providedIn: 'root' })
 export class MockAuthService {
+  private readonly auditLog = inject(AuditLogService);
   private readonly firebaseData = inject(FirebaseDataService);
   private readonly usersSignal = signal<UserProfile[]>(this.loadUsers());
   private readonly sessionUserId = signal<string | null>(this.loadSessionUserId());
@@ -26,7 +28,15 @@ export class MockAuthService {
 
   async login(email: string, password: string): Promise<boolean> {
     if (!this.firebaseData.enabled) {
-      return this.loginLocally(email, password);
+      const user = this.findLocalUser(email, password);
+      if (!user) {
+        this.recordAuthFailure(email);
+        return false;
+      }
+
+      this.setActiveUser(user);
+      this.recordAuthSuccess(user);
+      return true;
     }
 
     try {
@@ -36,14 +46,21 @@ export class MockAuthService {
       const user = await this.resolveFirebaseUser(credential.user, password);
       this.setActiveUser(user);
       this.refreshFirebaseUsersForAdmin(user);
+      this.recordAuthSuccess(user);
       return true;
     } catch (error) {
       console.warn('Firebase login failed', error);
+      this.recordAuthFailure(email);
       return false;
     }
   }
 
   logout(): void {
+    const user = this.currentUser();
+    if (user) {
+      this.auditLog.record('auth.logout', 'info', `${user.email} cikis yapti.`, { actor: user });
+    }
+
     this.sessionUserId.set(null);
     this.persistSession(null);
 
@@ -60,6 +77,12 @@ export class MockAuthService {
   async createUser(payload: Pick<UserProfile, 'name' | 'email' | 'password' | 'role'>): Promise<UserProfile> {
     if (!this.firebaseData.enabled) {
       return this.createLocalUser(payload);
+    }
+
+    const backendUser = await this.firebaseData.callFunction<UserProfile>('createPlatformUser', payload);
+    if (backendUser) {
+      this.upsertUser({ ...backendUser, password: '' });
+      return { ...backendUser, password: '' };
     }
 
     const appApi = await import('firebase/app');
@@ -88,6 +111,9 @@ export class MockAuthService {
 
       await this.firebaseData.saveUser(user);
       this.upsertUser(user);
+      this.auditLog.record('user.created', 'success', `${user.email} kullanicisi ${user.role} roluyle olusturuldu.`, {
+        actor: this.currentUser()
+      });
       return user;
     } finally {
       await appApi.deleteApp(secondaryApp);
@@ -115,6 +141,9 @@ export class MockAuthService {
 
       await this.firebaseData.saveUser(user);
       this.setActiveUser(user);
+      this.auditLog.record('auth.guest.started', 'info', `${name} public creator oturumu baslatti.`, {
+        actor: user
+      });
       return user;
     } catch (error) {
       console.warn('Firebase anonymous session failed, local guest session started', error);
@@ -124,6 +153,16 @@ export class MockAuthService {
 
   async updateUserRole(userId: string, role: UserRole): Promise<void> {
     const existing = this.usersSignal().find((user) => user.id === userId);
+    const previousRole = existing?.role ?? 'unknown';
+
+    if (this.firebaseData.enabled) {
+      const backendUser = await this.firebaseData.callFunction<UserProfile>('updatePlatformUserRole', { userId, role });
+      if (backendUser) {
+        this.upsertUser({ ...backendUser, password: '' });
+        return;
+      }
+    }
+
     const nextUsers = this.usersSignal().map((user) => (user.id === userId ? { ...user, role } : user));
     this.usersSignal.set(nextUsers);
     this.persistUsers(nextUsers);
@@ -131,19 +170,19 @@ export class MockAuthService {
     if (this.firebaseData.enabled && existing) {
       await this.firebaseData.saveUser({ ...existing, role });
     }
+
+    this.auditLog.record(
+      'user.role.updated',
+      'warning',
+      `${existing?.email ?? userId} rolu ${previousRole} -> ${role} olarak guncellendi.`,
+      { actor: this.currentUser() }
+    );
   }
 
-  private loginLocally(email: string, password: string): boolean {
-    const user = this.usersSignal().find(
+  private findLocalUser(email: string, password: string): UserProfile | null {
+    return this.usersSignal().find(
       (item) => item.email.toLowerCase() === email.toLowerCase() && item.password === password
-    );
-
-    if (!user) {
-      return false;
-    }
-
-    this.setActiveUser(user);
-    return true;
+    ) ?? null;
   }
 
   private createLocalUser(payload: Pick<UserProfile, 'name' | 'email' | 'password' | 'role'>): UserProfile {
@@ -154,6 +193,12 @@ export class MockAuthService {
     const nextUsers = [...this.usersSignal(), nextUser];
     this.usersSignal.set(nextUsers);
     this.persistUsers(nextUsers);
+    this.auditLog.record(
+      'user.created',
+      'success',
+      `${nextUser.email} kullanicisi ${nextUser.role} roluyle olusturuldu.`,
+      { actor: this.currentUser() }
+    );
     return nextUser;
   }
 
@@ -169,6 +214,9 @@ export class MockAuthService {
 
     this.upsertUser(user);
     this.setActiveUser(user);
+    this.auditLog.record('auth.guest.started', 'info', `${name} public creator oturumu baslatti.`, {
+      actor: user
+    });
     return user;
   }
 
@@ -271,6 +319,14 @@ export class MockAuthService {
     this.upsertUser(user);
     this.sessionUserId.set(user.id);
     this.persistSession(user.id);
+  }
+
+  private recordAuthSuccess(user: UserProfile): void {
+    this.auditLog.record('auth.login', 'success', `${user.email} giris yapti.`, { actor: user });
+  }
+
+  private recordAuthFailure(email: string): void {
+    this.auditLog.record('auth.login.failed', 'warning', `${email} icin basarisiz giris denemesi.`);
   }
 
   private loadUsers(): UserProfile[] {

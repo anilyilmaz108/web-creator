@@ -8,6 +8,9 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "firebase:bootstrap": "node scripts/firebase-bootstrap.mjs",
+    "functions:install": "npm install --prefix functions",
+    "functions:build": "npm run build --prefix functions",
+    "firebase:deploy:functions": "firebase deploy --only functions --project web-creator-anilyilmaz",
     "firebase:deploy:hosting": "npm run build && firebase deploy --only hosting:app --project web-creator-anilyilmaz",
     "firebase:deploy:firestore": "firebase deploy --only firestore --project web-creator-anilyilmaz",
     "firebase:deploy": "npm run build && firebase deploy --project web-creator-anilyilmaz"

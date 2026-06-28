@@ -88,6 +88,10 @@ export class DashboardComponent {
     const logs = this.auditLogs();
     return (simulatedSiteId ? logs.filter((log) => log.siteId === simulatedSiteId) : logs).slice(0, 12);
   });
+  readonly criticalLogCount = computed(
+    () => this.auditLogs().filter((log) => log.level === 'warning' || log.level === 'danger').length
+  );
+  readonly authLogCount = computed(() => this.auditLogs().filter((log) => log.action.startsWith('auth.')).length);
 
   newProjectName = '';
   rejectionReason = 'Yayin onay kriterleri tamamlanmadi.';
@@ -158,13 +162,11 @@ export class DashboardComponent {
     }
 
     await this.auth.createUser(this.newUser);
-    this.builderStore.recordAuditLog('user.created', 'success', `${this.newUser.email} kullanicisi olusturuldu.`);
     this.newUser = { name: '', email: '', password: '', role: 'visitor' };
   }
 
   async updateRole(userId: string, role: UserRole): Promise<void> {
     await this.auth.updateUserRole(userId, role);
-    this.builderStore.recordAuditLog('user.role.updated', 'warning', `${this.ownerName(userId)} rolu ${role} olarak guncellendi.`);
   }
 
   ownerName(ownerId: string): string {
@@ -193,5 +195,9 @@ export class DashboardComponent {
       dateStyle: 'medium',
       timeStyle: 'short'
     }).format(new Date(value));
+  }
+
+  logScope(siteName?: string): string {
+    return siteName ? `Site: ${siteName}` : 'Platform';
   }
 }

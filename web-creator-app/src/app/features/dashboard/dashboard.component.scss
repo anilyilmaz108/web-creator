@@ -191,6 +191,16 @@
   color: #0f766e;
 }
 
+.badge--warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badge--danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
 .queue-card,
 .user-card {
   display: flex;
@@ -237,6 +247,20 @@
   border-radius: 18px;
   background: #fff;
   border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.log-list__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.log-list__meta small {
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .log-list strong,

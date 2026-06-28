@@ -55,7 +55,7 @@ Kapsam:
 - Cloud Functions ile yayin onayi, deploy tetikleme ve sure bitimi kontrolu
 - Firestore audit log koleksiyonu
 
-Bu fazda NextJS backend ve Docker sart degildir. Sunucu bakimi olmadan ilerlenebilir. Gercekten gizli kalmasi gereken admin islemleri Cloud Functions veya NextJS API tarafina alinabilir.
+Bu fazda NextJS backend ve Docker sart degildir. Sunucu bakimi olmadan ilerlenebilir. Gercekten gizli kalmasi gereken admin islemleri Cloud Functions tarafina alinmistir; production deploy icin Firebase Blaze plan karari gerekir.
 
 ### Faz 2: Operasyon ve Faturalama
 

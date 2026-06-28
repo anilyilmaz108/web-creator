@@ -151,14 +151,24 @@
           <div class="panel__header">
             <div>
               <h2>Islem Gecmisi</h2>
-              <p>Platformda kayit altina alinan son islemler.</p>
+              <p>{{ criticalLogCount() }} kritik, {{ authLogCount() }} auth kaydi.</p>
             </div>
           </div>
 
           <div class="log-list">
             @for (log of recentLogs(); track log.id) {
               <article>
-                <span class="badge" [class.badge--published]="log.level === 'success'">{{ log.level }}</span>
+                <div class="log-list__meta">
+                  <span
+                    class="badge"
+                    [class.badge--published]="log.level === 'success'"
+                    [class.badge--danger]="log.level === 'danger'"
+                    [class.badge--warning]="log.level === 'warning'"
+                  >
+                    {{ log.level }}
+                  </span>
+                  <small>{{ logScope(log.siteName) }}</small>
+                </div>
                 <strong>{{ log.action }}</strong>
                 <p>{{ log.details }}</p>
                 <small>{{ log.actorName }} - {{ formatDate(log.createdAt) }}</small>

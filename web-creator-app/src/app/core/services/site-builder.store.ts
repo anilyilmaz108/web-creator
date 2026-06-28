@@ -26,20 +26,20 @@ import {
   WidgetBlock,
   WidgetKind
 } from '../models/builder.models';
+import { AuditLogService } from './audit-log.service';
 import { FirebaseDataService } from './firebase-data.service';
 import { MockAuthService } from './mock-auth.service';
 
 const PROJECTS_KEY = 'web-creator-projects';
 const CUSTOM_THEMES_KEY = 'web-creator-custom-themes';
-const AUDIT_LOGS_KEY = 'web-creator-audit-logs';
 const SIMULATION_KEY = 'web-creator-simulation-site-id';
 
 @Injectable({ providedIn: 'root' })
 export class SiteBuilderStore {
   private readonly auth = inject(MockAuthService);
+  private readonly auditLog = inject(AuditLogService);
   private readonly firebaseData = inject(FirebaseDataService);
   private readonly projectsSignal = signal<SiteProject[]>(this.loadProjects());
-  private readonly auditLogsSignal = signal<AuditLogEntry[]>(this.loadAuditLogs());
   private readonly customThemesSignal = signal<ThemeConfig[]>(this.loadCustomThemes());
   private readonly selectedSiteIdSignal = signal<string>(this.projectsSignal()[0]?.id ?? '');
   private readonly selectedBlockIdSignal = signal<string | null>(null);
@@ -47,7 +47,7 @@ export class SiteBuilderStore {
   private readonly simulatedSiteIdSignal = signal<string | null>(this.loadSimulationSiteId());
 
   readonly projects = computed(() => this.projectsSignal());
-  readonly auditLogs = computed(() => this.auditLogsSignal());
+  readonly auditLogs = this.auditLog.logs;
   readonly themePresets = themePresets;
   readonly customThemes = computed(() => this.customThemesSignal());
   readonly availableThemes = computed(() => [...themePresets, ...this.customThemesSignal()]);
@@ -646,7 +646,7 @@ export class SiteBuilderStore {
   }
 
   logsForSite(siteId: string): AuditLogEntry[] {
-    return this.auditLogsSignal().filter((log) => log.siteId === siteId);
+    return this.auditLog.logsForSite(siteId);
   }
 
   recordAuditLog(action: string, level: AuditLogLevel, details: string, siteId?: string): void {
@@ -1007,19 +1007,6 @@ export class SiteBuilderStore {
     return (JSON.parse(raw) as ThemeConfig[]).map((theme) => this.normalizeTheme(theme));
   }
 
-  private loadAuditLogs(): AuditLogEntry[] {
-    const raw = globalThis.localStorage?.getItem(AUDIT_LOGS_KEY);
-    if (!raw) {
-      return [];
-    }
-
-    return (JSON.parse(raw) as AuditLogEntry[]).map((log) => ({
-      ...log,
-      level: log.level ?? 'info',
-      details: log.details ?? ''
-    }));
-  }
-
   private loadSimulationSiteId(): string | null {
     return globalThis.localStorage?.getItem(SIMULATION_KEY) ?? null;
   }
@@ -1361,29 +1348,10 @@ export class SiteBuilderStore {
     globalThis.localStorage?.setItem(CUSTOM_THEMES_KEY, JSON.stringify(this.customThemesSignal()));
   }
 
-  private persistAuditLogs(): void {
-    const logs = this.auditLogsSignal().slice(0, 500);
-    globalThis.localStorage?.setItem(AUDIT_LOGS_KEY, JSON.stringify(logs));
-    this.firebaseData.saveAuditLogs(logs);
-  }
-
   private logAction(action: string, level: AuditLogLevel, siteId: string | undefined, details: string): void {
     const site = siteId ? this.findById(siteId) : this.selectedSite();
     const actor = this.auth.currentUser();
-    const log: AuditLogEntry = {
-      id: `log-${crypto.randomUUID()}`,
-      action,
-      level,
-      createdAt: new Date().toISOString(),
-      actorId: actor?.id ?? 'anonymous',
-      actorName: actor?.name ?? 'Anonim Kullanici',
-      siteId: site?.id,
-      siteName: site?.name,
-      details
-    };
-
-    this.auditLogsSignal.update((logs) => [log, ...logs].slice(0, 500));
-    this.persistAuditLogs();
+    this.auditLog.record(action, level, details, { actor, site });
   }
 
   private hydrateFromFirebase(): void {
@@ -1401,14 +1369,6 @@ export class SiteBuilderStore {
       globalThis.localStorage?.setItem(PROJECTS_KEY, JSON.stringify(this.projectsSignal()));
     });
 
-    void this.firebaseData.loadAuditLogs().then((logs) => {
-      if (!logs.length) {
-        return;
-      }
-
-      this.auditLogsSignal.set(logs.slice(0, 500));
-      globalThis.localStorage?.setItem(AUDIT_LOGS_KEY, JSON.stringify(this.auditLogsSignal()));
-    });
   }
 
   private uniqueSlug(baseSlug: string): string {

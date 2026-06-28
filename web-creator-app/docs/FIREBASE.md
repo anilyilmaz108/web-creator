@@ -24,6 +24,8 @@ Bu proje icin Firebase projesi olusturuldu:
 
 ```bash
 npm run firebase:bootstrap
+npm run functions:build
+npm run firebase:deploy:functions
 npm run firebase:deploy:hosting
 npm run firebase:deploy:firestore
 npm run firebase:deploy
@@ -54,6 +56,30 @@ npm run firebase:bootstrap
 ```
 
 Bu komut demo hesaplarini Firebase Auth'a ekler ve Firestore'da `platformUsers/{uid}` rol dokumanlarini olusturur.
+
+## Cloud Functions Backend
+
+`functions/` klasoru hassas operasyonlari Firebase Admin SDK ile server tarafina tasimak icin eklendi.
+
+Runtime: Node.js 22, region: `europe-west3`.
+
+Callable function'lar:
+
+- `createPlatformUser`: Auth kullanicisi ve `platformUsers/{uid}` profilini olusturur.
+- `updatePlatformUserRole`: Rol dokumanini ve custom claim'i gunceller.
+- `requestPublication`: Siteyi yayin onay kuyruguna alir.
+- `approvePublication`: Siteyi belirli sureyle yayinlar ve hosting metadata'sini aktifler.
+- `rejectPublication`: Yayin talebini reddeder.
+- `stopPublication`: Yayini durdurur, aktif hostingleri paused yapar.
+- `writeClientAuditLog`: Client tarafindan gelen onemli aktiviteleri server tarafinda loglar.
+
+Tum backend operasyonlari `auditLogs` koleksiyonuna superadmin icin islem gecmisi yazar.
+
+Deploy notu: Cloud Functions production deploy icin Firebase projesinin Blaze planinda olmasi gerekir. Blaze acilmadan emulator ve local build calisir, production deploy calismaz.
+
+Firebase CLI deploy sonunda build image cleanup uyarisi verebilir. Redeploy tekrar denendi; uyari devam ederse asagidaki Cloud Console ekranindan eski `gcf` build image'lari manuel temizlenmelidir:
+
+`https://console.cloud.google.com/gcr/images/web-creator-anilyilmaz/eu/gcf`
 
 ## Onemli Guvenlik Notu
 

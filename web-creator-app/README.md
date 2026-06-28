@@ -49,6 +49,8 @@ Firebase komutlari:
 
 ```bash
 npm run firebase:bootstrap
+npm run functions:build
+npm run firebase:deploy:functions
 npm run firebase:deploy:hosting
 npm run firebase:deploy:firestore
 npm run firebase:deploy
@@ -65,8 +67,9 @@ Sonraki iterasyonda:
 
 1. Firebase Console'da Authentication providerlarini acma
 2. `npm run firebase:bootstrap` ile ilk superadmin/admin hesaplarini seed etme
-3. Gorsel yukleme icin Firebase Storage
-4. Firebase Hosting deploy tetigi ve sure sonu kontrolleri icin Cloud Functions
+3. Cloud Functions deploy icin Blaze plan kararini verme
+4. Gorsel yukleme icin Firebase Storage
+5. Firebase Hosting deploy tetigi ve sure sonu kontrolleri icin Cloud Functions
 
 NextJS + Docker su asamada zorunlu degildir; ozel deploy orchestration, faturalama veya PostgreSQL raporlama ihtiyaci artarsa ikinci fazda eklenebilir.
 

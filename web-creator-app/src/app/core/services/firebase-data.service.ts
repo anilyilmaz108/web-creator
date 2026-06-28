@@ -73,7 +73,7 @@ export class FirebaseDataService {
         logs.slice(0, 50).map((log) =>
           firestoreApi.setDoc(
             firestoreApi.doc(firestore, 'auditLogs', log.id),
-            log as unknown as Record<string, unknown>,
+            this.stripUndefined(log) as Record<string, unknown>,
             { merge: true }
           )
         )
@@ -146,6 +146,25 @@ export class FirebaseDataService {
     return this.auth;
   }
 
+  async callFunction<T>(name: string, payload: unknown): Promise<T | null> {
+    if (!this.enabled) {
+      return null;
+    }
+
+    try {
+      const functionsApi = await import('firebase/functions');
+      const callable = functionsApi.httpsCallable(
+        functionsApi.getFunctions(await this.getApp(), 'europe-west3'),
+        name
+      );
+      const response = await callable(payload);
+      return response.data as T;
+    } catch (error) {
+      console.warn(`Firebase function ${name} failed`, error);
+      return null;
+    }
+  }
+
   getFirebaseOptions(): FirebaseOptions {
     const config = this.runtimeConfig.firebase ?? environment.firebase;
 
@@ -200,7 +219,7 @@ export class FirebaseDataService {
       const firestoreApi = await import('firebase/firestore');
       const firestore = await this.getFirestore();
       const snapshot = await firestoreApi.getDocs(firestoreApi.collection(firestore, collectionName));
-      return snapshot.docs.map((item) => item.data() as T);
+      return snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as T);
     } catch (error) {
       console.warn(errorMessage, error);
       return [];
@@ -212,17 +231,33 @@ export class FirebaseDataService {
   }
 
   private projectForFirestore(project: SiteProject): Record<string, unknown> {
-    return {
+    return this.stripUndefined({
       ...project,
       ownerUid: project.ownerUid ?? project.ownerId
-    } as unknown as Record<string, unknown>;
+    }) as Record<string, unknown>;
   }
 
   private userForFirestore(user: UserProfile): Record<string, unknown> {
     const { password: _password, ...profile } = user;
-    return {
+    return this.stripUndefined({
       ...profile,
       password: ''
-    };
+    }) as Record<string, unknown>;
+  }
+
+  private stripUndefined(value: unknown): unknown {
+    if (Array.isArray(value)) {
+      return value.map((item) => this.stripUndefined(item));
+    }
+
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>)
+          .filter(([, item]) => item !== undefined)
+          .map(([key, item]) => [key, this.stripUndefined(item)])
+      );
+    }
+
+    return value;
   }
 }
