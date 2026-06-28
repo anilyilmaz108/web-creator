@@ -6,12 +6,25 @@
       <p>Projeler, yayin talepleri, hostingler ve ekip rolleri.</p>
     </div>
     <div class="topbar__actions">
+      <a routerLink="/create-site">Public Site Olustur</a>
       @if (canReviewPublications()) {
         <a routerLink="/review-queue">Yayin Kuyrugu</a>
       }
       <button type="button" (click)="logout()">Cikis Yap</button>
     </div>
   </header>
+
+  @if (isSimulating(); as simulating) {
+    @if (simulating && simulatedSite(); as site) {
+      <section class="simulation-bar">
+        <div>
+          <strong>Simulasyon aktif</strong>
+          <span>{{ site.name }} admini gibi goruntuleniyor.</span>
+        </div>
+        <button type="button" (click)="stopSimulation()">Simulasyondan Cik</button>
+      </section>
+    }
+  }
 
   <div class="stats">
     <article>
@@ -20,7 +33,7 @@
     </article>
     <article>
       <span>Yayin Bekleyen</span>
-      <strong>{{ pendingProjects().length }}</strong>
+      <strong>{{ visiblePendingProjects().length }}</strong>
     </article>
     <article>
       <span>Aktif Hosting</span>
@@ -70,11 +83,17 @@
 
             <div class="project-card__actions">
               <button type="button" (click)="openBuilder(project.id)">Builder</button>
-              <a [routerLink]="['/preview', project.id]">Preview</a>
+              <button type="button" class="button-muted" (click)="openSiteAdmin(project.id)">Site Admin</button>
               <a [routerLink]="['/sites', project.slug]">Public</a>
+              @if (currentUser()?.role === 'superadmin') {
+                <button type="button" class="button-muted" (click)="startSimulation(project)">Simule Et</button>
+              }
               @if (activeHosting(project)) {
                 <button type="button" class="button-secondary" (click)="publishToActiveHosting(project)">
                   Yayini Guncelle
+                </button>
+                <button type="button" class="button-danger" (click)="stopPublication(project)">
+                  Yayini Durdur
                 </button>
               } @else {
                 <button type="button" class="button-secondary" (click)="requestPublication(project)">
@@ -103,13 +122,17 @@
           </div>
 
           <div class="queue-list">
-            @for (project of pendingProjects(); track project.id) {
+            @for (project of visiblePendingProjects(); track project.id) {
               <article class="queue-card">
                 <div>
                   <strong>{{ project.name }}</strong>
                   <span>{{ formatDate(project.publication.requestedAt) }}</span>
                 </div>
-                <a routerLink="/review-queue">Incele</a>
+                <div class="queue-card__actions">
+                  <button type="button" (click)="approvePublication(project, 30)">30 Gun Onayla</button>
+                  <button type="button" class="button-danger" (click)="rejectPublication(project)">Reddet</button>
+                  <a routerLink="/review-queue">Detay</a>
+                </div>
               </article>
             } @empty {
               <article class="queue-card">
@@ -117,6 +140,33 @@
                   <strong>Kuyruk bos</strong>
                   <span>Bekleyen yayin talebi yok.</span>
                 </div>
+              </article>
+            }
+          </div>
+        </section>
+      }
+
+      @if (currentUser()?.role === 'superadmin') {
+        <section class="panel">
+          <div class="panel__header">
+            <div>
+              <h2>Islem Gecmisi</h2>
+              <p>Platformda kayit altina alinan son islemler.</p>
+            </div>
+          </div>
+
+          <div class="log-list">
+            @for (log of recentLogs(); track log.id) {
+              <article>
+                <span class="badge" [class.badge--published]="log.level === 'success'">{{ log.level }}</span>
+                <strong>{{ log.action }}</strong>
+                <p>{{ log.details }}</p>
+                <small>{{ log.actorName }} - {{ formatDate(log.createdAt) }}</small>
+              </article>
+            } @empty {
+              <article>
+                <strong>Henuz log yok</strong>
+                <p>Islem yapildikca burada gorunecek.</p>
               </article>
             }
           </div>
@@ -132,7 +182,7 @@
         </div>
 
         <div class="hosting-list">
-          @for (target of hostingTargets(); track target.id) {
+          @for (target of visibleHostingTargets(); track target.id) {
             <article>
               <span class="badge" [class.badge--published]="target.status === 'active'">{{ target.status }}</span>
               <strong>{{ target.projectName }}</strong>

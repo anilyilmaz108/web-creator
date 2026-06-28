@@ -14,6 +14,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/login/login.component').then((m) => m.LoginComponent)
   },
   {
+    path: 'create-site',
+    loadComponent: () =>
+      import('./features/public-create/public-create.component').then((m) => m.PublicCreateComponent)
+  },
+  {
     path: 'dashboard',
     canActivate: [authGuard],
     loadComponent: () =>
@@ -25,19 +30,22 @@ export const routes: Routes = [
     loadComponent: () => import('./features/builder/builder.component').then((m) => m.BuilderComponent)
   },
   {
-    path: 'preview/:siteId',
-    canActivate: [authGuard],
-    loadComponent: () => import('./features/preview/preview.component').then((m) => m.PreviewComponent)
-  },
-  {
     path: 'demo/:siteId',
     canActivate: [authGuard],
     loadComponent: () => import('./features/demo/demo.component').then((m) => m.DemoComponent)
   },
   {
+    path: 'site-admin/:siteId',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/site-admin-dashboard/site-admin-dashboard.component').then(
+        (m) => m.SiteAdminDashboardComponent
+      )
+  },
+  {
     path: 'review-queue',
     canActivate: [authGuard, roleGuard],
-    data: { roles: ['superadmin'] },
+    data: { roles: ['superadmin', 'admin'] },
     loadComponent: () =>
       import('./features/review-queue/review-queue.component').then((m) => m.ReviewQueueComponent)
   },

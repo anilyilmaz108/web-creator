@@ -33,19 +33,29 @@
               Demo Izle
             </a>
             @if (canRequestPublication()) {
-              <button
-                type="button"
-                (click)="requestPublication()"
-                class="inline-flex items-center rounded-2xl bg-gradient-to-r from-fuchsia-400 to-pink-300 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-fuchsia-500/20 transition hover:scale-[1.01]"
-              >
-                Yayina Gonder
-              </button>
+              @if (site.status === 'published') {
+                <button
+                  type="button"
+                  (click)="stopPublication()"
+                  class="inline-flex items-center rounded-2xl bg-rose-400 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-rose-500/20 transition hover:scale-[1.01]"
+                >
+                  Yayini Durdur
+                </button>
+              } @else {
+                <button
+                  type="button"
+                  (click)="requestPublication()"
+                  class="inline-flex items-center rounded-2xl bg-gradient-to-r from-fuchsia-400 to-pink-300 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg shadow-fuchsia-500/20 transition hover:scale-[1.01]"
+                >
+                  Yayina Gonder
+                </button>
+              }
             }
           </div>
         </div>
       </header>
 
-      <div class="grid gap-4 2xl:grid-cols-[360px_minmax(0,1fr)_380px]">
+      <div class="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)_390px]">
         <aside class="rounded-[28px] border border-white/10 bg-slate-950/70 p-4 shadow-panel backdrop-blur">
           <div class="space-y-6">
             <section class="rounded-[24px] border border-white/10 bg-white/5 p-4">
@@ -265,7 +275,9 @@
                             [theme]="site.theme"
                             [viewport]="viewport()"
                             [interactive]="true"
+                            mode="builder"
                             [selectedBlockId]="selectedBlock()?.id ?? null"
+                            (blockSelected)="selectBlock($event)"
                           />
                         </div>
                       </div>
@@ -283,7 +295,9 @@
                           [theme]="site.theme"
                           [viewport]="viewport()"
                           [interactive]="true"
+                          mode="builder"
                           [selectedBlockId]="selectedBlock()?.id ?? null"
+                          (blockSelected)="selectBlock($event)"
                         />
                       </div>
                     </div>
@@ -300,7 +314,9 @@
                           [theme]="site.theme"
                           [viewport]="viewport()"
                           [interactive]="true"
+                          mode="builder"
                           [selectedBlockId]="selectedBlock()?.id ?? null"
+                          (blockSelected)="selectBlock($event)"
                         />
                       </div>
                       <div class="mt-3 flex justify-center">
@@ -332,7 +348,7 @@
                           : 'border-white/10 bg-slate-900/80'
                       "
                     >
-                      <button type="button" class="text-left" (click)="store.selectBlock(block.id)">
+                      <button type="button" class="text-left" (click)="selectBlock(block.id)">
                         <strong class="block font-display text-lg text-white">{{ block.title }}</strong>
                         <span class="mt-1 block text-sm uppercase tracking-[0.18em] text-slate-400">
                           {{ block.type }} · {{ block.layout }} · {{ block.animation }}
@@ -372,6 +388,34 @@
 
         <aside class="sticky top-4 self-start max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[28px] border border-white/10 bg-slate-950/70 p-4 shadow-panel backdrop-blur">
           <div class="space-y-6">
+            <div class="sticky top-0 z-20 grid grid-cols-3 gap-2 rounded-[22px] border border-white/10 bg-slate-950/95 p-2 backdrop-blur">
+              <button
+                type="button"
+                (click)="selectInspectorTab('block')"
+                class="rounded-2xl px-3 py-2 text-sm font-semibold transition"
+                [ngClass]="inspectorTab === 'block' ? 'bg-cyan-300 text-slate-950' : 'bg-white/5 text-slate-300 hover:bg-white/10'"
+              >
+                Block
+              </button>
+              <button
+                type="button"
+                (click)="selectInspectorTab('theme')"
+                class="rounded-2xl px-3 py-2 text-sm font-semibold transition"
+                [ngClass]="inspectorTab === 'theme' ? 'bg-cyan-300 text-slate-950' : 'bg-white/5 text-slate-300 hover:bg-white/10'"
+              >
+                Tema
+              </button>
+              <button
+                type="button"
+                (click)="selectInspectorTab('site')"
+                class="rounded-2xl px-3 py-2 text-sm font-semibold transition"
+                [ngClass]="inspectorTab === 'site' ? 'bg-cyan-300 text-slate-950' : 'bg-white/5 text-slate-300 hover:bg-white/10'"
+              >
+                Site
+              </button>
+            </div>
+
+            @if (inspectorTab === 'theme') {
             <details open class="rounded-[24px] border border-white/10 bg-white/5 p-4">
               <summary class="flex cursor-pointer list-none items-center justify-between gap-3">
                 <div>
@@ -493,7 +537,9 @@
                 </div>
               </div>
             </details>
+            }
 
+            @if (inspectorTab === 'site') {
             <details open class="rounded-[24px] border border-white/10 bg-white/5 p-4">
               <summary class="flex cursor-pointer list-none items-center justify-between gap-3">
                 <div>
@@ -802,7 +848,9 @@
                 </div>
               </div>
             </details>
+            }
 
+            @if (inspectorTab === 'block') {
             <details open class="rounded-[24px] border border-white/10 bg-white/5 p-4">
               <summary class="flex cursor-pointer list-none items-center justify-between gap-3">
                 <div>
@@ -1654,6 +1702,7 @@
                 </p>
               }
             </details>
+            }
           </div>
         </aside>
       </div>

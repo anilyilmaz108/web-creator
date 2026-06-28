@@ -1,0 +1,118 @@
+@if (site(); as site) {
+  <section class="site-admin">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Site Admin</p>
+        <h1>{{ site.name }}</h1>
+        <p>{{ site.status }} - {{ site.publication.publishedUrl || 'Yayin URL bekliyor' }}</p>
+      </div>
+      <div class="actions">
+        @if (isSimulating()) {
+          <button type="button" class="muted" (click)="stopSimulation()">Simulasyondan Cik</button>
+        }
+        <button type="button" (click)="openBuilder(site.id)">Builder</button>
+        <a routerLink="/dashboard">Dashboard</a>
+        @if (site.status === 'published') {
+          <button type="button" class="danger" (click)="stopPublication(site)">Yayini Durdur</button>
+        } @else {
+          <button type="button" class="success" (click)="requestPublication(site)">Yayina Gonder</button>
+        }
+      </div>
+    </header>
+
+    <div class="stats">
+      @for (stat of stats(); track stat.label) {
+        <article>
+          <span>{{ stat.label }}</span>
+          <strong>{{ stat.value }}</strong>
+        </article>
+      }
+    </div>
+
+    <div class="layout">
+      <main class="panel">
+        <div class="panel__header">
+          <h2>Trafik Simulasyonu</h2>
+          <p>Gercek analytics baglanana kadar site yapisindan uretilen ornek veri.</p>
+        </div>
+
+        <div class="chart">
+          @for (point of chart(); track point.label) {
+            <div class="bar">
+              <span [style.height.%]="barHeight(point.value)"></span>
+              <strong>{{ point.label }}</strong>
+              <small>{{ point.value }}</small>
+            </div>
+          }
+        </div>
+
+        <div class="tables">
+          <article>
+            <h3>Sayfalar</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Sayfa</th>
+                  <th>Slug</th>
+                  <th>Block</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (page of site.pages; track page.id) {
+                  <tr>
+                    <td>{{ page.name }}</td>
+                    <td>/{{ page.slug }}</td>
+                    <td>{{ page.blocks.length }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </article>
+
+          <article>
+            <h3>Component Dagilimi</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Component</th>
+                  <th>Adet</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of componentRows(); track row.name) {
+                  <tr>
+                    <td>{{ row.name }}</td>
+                    <td>{{ row.count }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </article>
+        </div>
+      </main>
+
+      <aside class="panel">
+        <div class="panel__header">
+          <h2>Islem Gecmisi</h2>
+          <p>Bu siteye ait son aktiviteler.</p>
+        </div>
+
+        <div class="log-list">
+          @for (log of logs(); track log.id) {
+            <article>
+              <span>{{ log.level }}</span>
+              <strong>{{ log.action }}</strong>
+              <p>{{ log.details }}</p>
+              <small>{{ log.actorName }} - {{ formatDate(log.createdAt) }}</small>
+            </article>
+          } @empty {
+            <article>
+              <strong>Henuz islem yok</strong>
+              <p>Bu siteye ait loglar burada listelenecek.</p>
+            </article>
+          }
+        </div>
+      </aside>
+    </div>
+  </section>
+}

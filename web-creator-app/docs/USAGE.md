@@ -17,10 +17,20 @@ Uygulama varsayilan olarak `http://localhost:4200` adresinde calisir.
 - Admin: `admin@webcreator.dev` / `Admin123!`
 - Moderator: `moderator@webcreator.dev` / `Mod123!`
 
+## Giris Yapmadan Site Olusturma
+
+`/create-site` route'u herkese aciktir.
+
+1. Ad soyad ve site adi girilir.
+2. Sistem gecici bir `visitor` oturumu acar.
+3. Site `draft` ve `public` erisim modu ile olusturulur.
+4. Kullanici builder ekranina yonlendirilir.
+5. `Yayina Gonder` aksiyonu admin/superadmin onayina duser.
+
 ## Rol Mantigi
 
-- `superadmin`: Tum projeleri, yayin kuyrugunu, hosting envanterini ve kullanicilari yonetir.
-- `admin`: Kendi sitelerini olusturur, builder ekranina girer, kullanici rolleri yonetebilir.
+- `superadmin`: Tum projeleri, yayin kuyrugunu, hosting envanterini, loglari ve simulasyon modunu yonetir.
+- `admin`: Site yayin taleplerini degerlendirir, kendi sitelerini olusturur, builder ekranina girer, kullanici rolleri yonetebilir.
 - `moderator`: Icerik ve yayin talebi akislarinda calisir.
 - `visitor`: Gosterim ve test rolu olarak tutulur.
 
@@ -44,7 +54,7 @@ Builder ekrani uc bolumden olusur:
 
 - Sol panel: Sayfalar, ana blocklar ve component kutuphanesi.
 - Orta alan: Web, tablet ve mobil canli onizleme.
-- Sag panel: Tema, site ayarlari ve block inspector.
+- Sag panel: Sekmeli `Block`, `Tema`, `Site` inspector.
 
 ### Sayfa ve Block
 
@@ -52,6 +62,8 @@ Builder ekrani uc bolumden olusur:
 - `Ana Blocklar` ile hero, text, cards, table, image ve CTA eklenir.
 - `Component Kutuphanesi` ile form, gallery, tabs, navbar, charts gibi widgetlar eklenir.
 - `Yapi Sirasi` alaninda blocklar secilir, silinir veya siralanir.
+- Canli preview icindeki bir componente tiklayinca ilgili block otomatik secilir.
+- Hover durumunda component uzerinde `Edit` rozeti gorunur.
 
 ### Tema
 
@@ -106,6 +118,41 @@ Bu MVP'de deploy islemi simule edilir. Superadmin onay verdiginde secili hedef `
 4. Superadmin 7, 30 veya 90 gunluk yayin onayi verir ya da talebi reddeder.
 5. Onaylanan site `published` olur ve public route uzerinden gorulur.
 6. Aktif hosting acildiktan sonra site sahibi dashboarddan `Yayini Guncelle` aksiyonuyla tekrar yayin simule edebilir.
+7. `Yayini Durdur` aksiyonu siteyi tekrar `draft` durumuna alir ve aktif hosting hedeflerini `paused` yapar.
+
+## Site Admin Dashboard
+
+Yayina hazir veya yayindaki her site icin `/site-admin/:siteId` route'u vardir.
+
+Bu ekranda:
+
+- Yayin durumu ve yayin URL'i
+- Sayfa, block, dil, lead ve hosting kartlari
+- Trafik simulasyon grafigi
+- Sayfa ve component tablolari
+- Siteye ait islem gecmisi
+- Builder'a gecis ve yayin durdurma/yayina gonderme aksiyonlari
+
+## Superadmin Simulasyonu
+
+Superadmin dashboard uzerinde herhangi bir site icin `Simule Et` aksiyonunu kullanabilir.
+
+- Dashboard secilen site baglamina daralir.
+- Site admin paneli ve builder secilen site uzerinden acilir.
+- `Simulasyondan Cik` ile tekrar tum platform gorunumune donulur.
+
+## Islem Gecmisi
+
+Sistem veri degistiren operasyonlari audit log olarak saklar.
+
+Loglanan ornek islemler:
+
+- Site, sayfa, block ve widget olusturma/silme
+- Tema, dil, access ve hosting guncelleme
+- Yayina gonderme, onay, red ve durdurma
+- Superadmin simulasyon baslatma/bitirme
+
+Superadmin dashboard'da son loglari, site admin panelinde ise ilgili siteye ait loglari gorebilir.
 
 ## Public Site Kontrolu
 
@@ -123,6 +170,12 @@ Mevcut MVP verileri `localStorage` uzerinden saklar:
 - Custom temalar: `web-creator-custom-themes`
 - Kullanicilar: `web-creator-users`
 - Session: `web-creator-session`
+
+Firebase kullanimi:
+
+1. `src/environments/environment.ts` icinde `firebaseEnabled: true` yapin.
+2. Firebase config alanlarini doldurun.
+3. Uygulama localStorage yazmaya devam ederken proje ve audit log verilerini Firestore'a da yazar.
 
 Production icin onerilen yol:
 

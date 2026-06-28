@@ -13,7 +13,8 @@
 >
   @for (block of page.blocks; track trackByBlockId($index, block)) {
     <article
-      class="overflow-hidden border transition"
+      class="group relative overflow-hidden border transition"
+      (click)="selectBlock(block.id, $event)"
       [ngClass]="[widthClass(block.widthPreset), animationClass(block.animation), hoverEffectClass(block)]"
       [style.backgroundColor]="block.backgroundColor || theme.surface"
       [style.backgroundImage]="backgroundImageStyle(block)"
@@ -36,6 +37,15 @@
       [style.outlineOffset.px]="selectedBlockId === block.id ? 2 : 0"
       [style.minHeight.px]="block.minHeight || null"
     >
+      @if (mode === 'builder') {
+        <button
+          type="button"
+          class="absolute left-3 top-3 z-20 rounded-full border border-white/40 bg-slate-950/85 px-3 py-1.5 text-xs font-semibold text-white opacity-0 shadow-lg backdrop-blur transition group-hover:opacity-100"
+          (click)="selectBlock(block.id, $event)"
+        >
+          Edit
+        </button>
+      }
       @switch (block.type) {
         @case ('hero') {
           <div class="grid gap-8 p-6 md:p-8" [ngClass]="heroLayoutClass(block.layout)">

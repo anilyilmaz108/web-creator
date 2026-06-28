@@ -11,6 +11,7 @@ Temel deger onerisi:
 - Her kullanici birden fazla siteye, her site birden fazla hosting hedefine sahip olabilir.
 - Site, herkese acik veya uyelik gerektiren yapida calisabilir.
 - TR/EN ve ek diller route/path seviyesinde yonetilebilir.
+- Superadmin her siteyi izleyebilir, site admini gibi simulasyon yapabilir ve audit loglari inceleyebilir.
 
 ## Hedef Musteriler
 
@@ -32,6 +33,10 @@ Bu repo icindeki MVP su alanlari kapsar:
 - TR/EN ve ek dil/path ayarlari
 - Hosting hedefi kaydi
 - Superadmin yayin onayi
+- Yayin durdurma
+- Site admin dashboardu
+- Superadmin simulasyonu
+- Audit log
 - Public site gorunumu
 - Kullanim ve is dokumani
 
@@ -48,6 +53,7 @@ Kapsam:
 - Firebase Storage ile medya yukleme
 - Firebase Hosting multi-site ile yayin
 - Cloud Functions ile yayin onayi, deploy tetikleme ve sure bitimi kontrolu
+- Firestore audit log koleksiyonu
 
 Bu fazda NextJS backend ve Docker sart degildir. Sunucu bakimi olmadan ilerlenebilir.
 

@@ -46,6 +46,24 @@ export class MockAuthService {
     this.persistUsers(nextUsers);
   }
 
+  startGuestCreatorSession(name = 'Public Creator'): UserProfile {
+    const email = `creator-${crypto.randomUUID()}@public.webcreator.local`;
+    const user: UserProfile = {
+      id: `user-${crypto.randomUUID()}`,
+      name,
+      email,
+      password: '',
+      role: 'visitor'
+    };
+
+    const nextUsers = [...this.usersSignal(), user];
+    this.usersSignal.set(nextUsers);
+    this.persistUsers(nextUsers);
+    this.sessionUserId.set(user.id);
+    this.persistSession(user.id);
+    return user;
+  }
+
   updateUserRole(userId: string, role: UserRole): void {
     const nextUsers = this.usersSignal().map((user) => (user.id === userId ? { ...user, role } : user));
     this.usersSignal.set(nextUsers);

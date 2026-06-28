@@ -14,6 +14,7 @@ export type SiteAccessMode = 'public' | 'login' | 'signup';
 export type PublicationRequestStatus = 'none' | 'pending' | 'approved' | 'rejected';
 export type HostingProvider = 'firebase' | 'external';
 export type HostingStatus = 'draft' | 'provisioning' | 'active' | 'paused' | 'expired';
+export type AuditLogLevel = 'info' | 'warning' | 'success' | 'danger';
 
 export type WidgetKind =
   | 'accordion'
@@ -259,8 +260,23 @@ export interface PublicationSettings {
   rejectedAt?: string;
   rejectedBy?: string;
   rejectionReason?: string;
+  stoppedAt?: string;
+  stoppedBy?: string;
+  stopReason?: string;
   hostingTargetId?: string;
   publishedUrl?: string;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  action: string;
+  level: AuditLogLevel;
+  createdAt: string;
+  actorId: string;
+  actorName: string;
+  siteId?: string;
+  siteName?: string;
+  details: string;
 }
 
 export interface SiteProject {

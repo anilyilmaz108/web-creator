@@ -8,7 +8,7 @@
       }
     </nav>
     @for (page of site.pages; track page.id) {
-      <app-site-renderer [page]="page" [theme]="site.theme" />
+      <app-site-renderer [page]="page" [theme]="site.theme" mode="public" />
     }
   </section>
 } @else if (site && isAvailable) {

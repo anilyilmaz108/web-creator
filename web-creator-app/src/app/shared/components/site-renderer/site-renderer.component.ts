@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, signal } from '@angular/core';
+import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
 
 import {
   ActionButton,
@@ -24,13 +24,24 @@ export class SiteRendererComponent {
   @Input() viewport: ViewportMode = 'desktop';
   @Input() interactive = false;
   @Input() selectedBlockId: string | null = null;
-  @Input() mode: 'builder' | 'demo' | 'public' = 'builder';
+  @Input() mode: 'builder' | 'demo' | 'public' = 'public';
+  @Output() blockSelected = new EventEmitter<string>();
 
   private readonly widgetState = signal<Record<string, number>>({});
   private readonly modalState = signal<Record<string, boolean>>({});
 
   trackByBlockId(_index: number, block: PageBlock): string {
     return block.id;
+  }
+
+  selectBlock(blockId: string, event: Event): void {
+    if (this.mode !== 'builder') {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    this.blockSelected.emit(blockId);
   }
 
   featureGridClass(layout: PageBlock['layout']): string {

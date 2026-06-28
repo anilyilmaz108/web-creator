@@ -49,9 +49,7 @@ export class BuilderComponent {
     { value: 'tablet' as ViewportMode, label: 'Tablet', size: '820px', description: 'Tablet kasasi' },
     { value: 'mobile' as ViewportMode, label: 'Mobil', size: '390px', description: 'Telefon cercevesi' }
   ];
-  readonly canRequestPublication = computed(() =>
-    ['admin', 'moderator'].includes(this.currentUser()?.role ?? '')
-  );
+  readonly canRequestPublication = computed(() => !!this.currentUser());
 
   readonly baseBlockTypes = [
     { type: 'hero', label: 'Hero', hint: 'Kapak ve aksiyon alani' },
@@ -122,6 +120,7 @@ export class BuilderComponent {
   customThemeName = '';
   catalogSearch = '';
   activeCatalogCategory = 'All';
+  inspectorTab: 'block' | 'theme' | 'site' = 'block';
   draggedBlockId: string | null = null;
 
   constructor() {
@@ -264,6 +263,24 @@ export class BuilderComponent {
 
   requestPublication(): void {
     this.store.requestPublication(undefined, this.currentUser()?.id);
+  }
+
+  stopPublication(): void {
+    const site = this.selectedSite();
+    if (!site) {
+      return;
+    }
+
+    this.store.stopPublication(site.id, 'Builder uzerinden yayin durduruldu.', this.currentUser()?.id);
+  }
+
+  selectBlock(blockId: string): void {
+    this.store.selectBlock(blockId);
+    this.inspectorTab = 'block';
+  }
+
+  selectInspectorTab(tab: 'block' | 'theme' | 'site'): void {
+    this.inspectorTab = tab;
   }
 
   updateSiteAccess<K extends keyof SiteAccessSettings>(field: K, value: SiteAccessSettings[K]): void {

@@ -1,9 +1,11 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 
 import { componentCatalog } from '../data/component-catalog';
 import { demoProjects, themePresets } from '../data/demo-data';
 import {
   ActionButton,
+  AuditLogEntry,
+  AuditLogLevel,
   BlockType,
   CtaBlock,
   FeaturesBlock,
@@ -24,19 +26,28 @@ import {
   WidgetBlock,
   WidgetKind
 } from '../models/builder.models';
+import { FirebaseDataService } from './firebase-data.service';
+import { MockAuthService } from './mock-auth.service';
 
 const PROJECTS_KEY = 'web-creator-projects';
 const CUSTOM_THEMES_KEY = 'web-creator-custom-themes';
+const AUDIT_LOGS_KEY = 'web-creator-audit-logs';
+const SIMULATION_KEY = 'web-creator-simulation-site-id';
 
 @Injectable({ providedIn: 'root' })
 export class SiteBuilderStore {
+  private readonly auth = inject(MockAuthService);
+  private readonly firebaseData = inject(FirebaseDataService);
   private readonly projectsSignal = signal<SiteProject[]>(this.loadProjects());
+  private readonly auditLogsSignal = signal<AuditLogEntry[]>(this.loadAuditLogs());
   private readonly customThemesSignal = signal<ThemeConfig[]>(this.loadCustomThemes());
   private readonly selectedSiteIdSignal = signal<string>(this.projectsSignal()[0]?.id ?? '');
   private readonly selectedBlockIdSignal = signal<string | null>(null);
   private readonly viewportSignal = signal<ViewportMode>('desktop');
+  private readonly simulatedSiteIdSignal = signal<string | null>(this.loadSimulationSiteId());
 
   readonly projects = computed(() => this.projectsSignal());
+  readonly auditLogs = computed(() => this.auditLogsSignal());
   readonly themePresets = themePresets;
   readonly customThemes = computed(() => this.customThemesSignal());
   readonly availableThemes = computed(() => [...themePresets, ...this.customThemesSignal()]);
@@ -74,6 +85,15 @@ export class SiteBuilderStore {
       project.hostingTargets.map((target) => ({ ...target, projectId: project.id, projectName: project.name }))
     )
   );
+  readonly simulatedSiteId = computed(() => this.simulatedSiteIdSignal());
+  readonly isSimulating = computed(() => !!this.simulatedSiteIdSignal());
+  readonly simulatedSite = computed(() =>
+    this.projectsSignal().find((project) => project.id === this.simulatedSiteIdSignal()) ?? null
+  );
+
+  constructor() {
+    this.hydrateFromFirebase();
+  }
 
   createProject(ownerId: string, name: string): SiteProject {
     const safeName = name.trim() || 'Yeni Site';
@@ -120,6 +140,7 @@ export class SiteBuilderStore {
     this.projectsSignal.update((projects) => [project, ...projects]);
     this.selectedSiteIdSignal.set(project.id);
     this.persist();
+    this.logAction('site.created', 'success', project.id, `${project.name} sitesi olusturuldu.`);
     return this.normalizeProject({ ...project, hostingTargets: project.hostingTargets.map((target) => ({ ...target, createdAt: now })) });
   }
 
@@ -146,6 +167,7 @@ export class SiteBuilderStore {
       pages: [...site.pages, page],
       selectedPageId: page.id
     }));
+    this.logAction('page.created', 'success', undefined, `${name} sayfasi olusturuldu.`);
   }
 
   updatePageMeta(pageId: string, patch: Partial<Pick<SitePage, 'name' | 'slug'>>): void {
@@ -153,6 +175,7 @@ export class SiteBuilderStore {
       ...site,
       pages: site.pages.map((page) => (page.id === pageId ? { ...page, ...patch } : page))
     }));
+    this.logAction('page.updated', 'info', undefined, 'Sayfa bilgileri guncellendi.');
   }
 
   updatePageLocalizedSlug(pageId: string, languageCode: string, slug: string): void {
@@ -170,6 +193,7 @@ export class SiteBuilderStore {
           : page
       )
     }));
+    this.logAction('page.localized_slug.updated', 'info', undefined, `${languageCode} path guncellendi.`);
   }
 
   removePage(pageId: string): void {
@@ -189,18 +213,21 @@ export class SiteBuilderStore {
       };
     });
     this.selectedBlockIdSignal.set(null);
+    this.logAction('page.removed', 'warning', undefined, 'Sayfa silindi.');
   }
 
   addBlock(type: BlockType): void {
     const nextBlock = this.createBlock(type);
     this.patchSelectedPage((page) => ({ ...page, blocks: [...page.blocks, nextBlock] }));
     this.selectedBlockIdSignal.set(nextBlock.id);
+    this.logAction('block.created', 'success', undefined, `${nextBlock.title} block eklendi.`);
   }
 
   addWidget(widgetKind: WidgetKind): void {
     const nextBlock = this.createWidget(widgetKind);
     this.patchSelectedPage((page) => ({ ...page, blocks: [...page.blocks, nextBlock] }));
     this.selectedBlockIdSignal.set(nextBlock.id);
+    this.logAction('widget.created', 'success', undefined, `${nextBlock.title} component eklendi.`);
   }
 
   selectBlock(blockId: string): void {
@@ -215,6 +242,7 @@ export class SiteBuilderStore {
     if (this.selectedBlockIdSignal() === blockId) {
       this.selectedBlockIdSignal.set(null);
     }
+    this.logAction('block.removed', 'warning', undefined, 'Block silindi.');
   }
 
   moveBlock(blockId: string, direction: 'up' | 'down'): void {
@@ -234,6 +262,7 @@ export class SiteBuilderStore {
       blocks.splice(targetIndex, 0, block);
       return { ...page, blocks };
     });
+    this.logAction('block.moved', 'info', undefined, `Block ${direction === 'up' ? 'yukari' : 'asagi'} tasindi.`);
   }
 
   moveBlockToIndex(blockId: string, targetIndex: number): void {
@@ -248,6 +277,7 @@ export class SiteBuilderStore {
       blocks.splice(targetIndex, 0, block);
       return { ...page, blocks };
     });
+    this.logAction('block.reordered', 'info', undefined, 'Block sirasi surukle-birak ile degisti.');
   }
 
   updateBlock(blockId: string, patch: Partial<PageBlock>): void {
@@ -257,14 +287,17 @@ export class SiteBuilderStore {
         block.id === blockId ? ({ ...block, ...patch } as PageBlock) : block
       )
     }));
+    this.logAction('block.updated', 'info', undefined, 'Block ayarlari guncellendi.');
   }
 
   applyTheme(theme: ThemeConfig): void {
     this.patchSelectedSite((site) => ({ ...site, theme }));
+    this.logAction('theme.applied', 'info', undefined, `${theme.name} temasi uygulandi.`);
   }
 
   updateTheme(patch: Partial<ThemeConfig>): void {
     this.patchSelectedSite((site) => ({ ...site, theme: { ...site.theme, ...patch } }));
+    this.logAction('theme.updated', 'info', undefined, 'Tema ayarlari guncellendi.');
   }
 
   saveCurrentTheme(name: string): boolean {
@@ -293,6 +326,7 @@ export class SiteBuilderStore {
       theme
     }));
     this.persistCustomThemes();
+    this.logAction('theme.saved', 'success', undefined, `${trimmedName} custom temasi kaydedildi.`);
     return true;
   }
 
@@ -306,10 +340,12 @@ export class SiteBuilderStore {
       themes.filter((theme) => theme.name.trim().toLowerCase() !== trimmedName)
     );
     this.persistCustomThemes();
+    this.logAction('theme.deleted', 'warning', undefined, `${name} custom temasi silindi.`);
   }
 
   updateSiteMeta(patch: Partial<Pick<SiteProject, 'name' | 'slug'>>): void {
     this.patchSelectedSite((site) => ({ ...site, ...patch }));
+    this.logAction('site.updated', 'info', undefined, 'Site bilgileri guncellendi.');
   }
 
   updateSiteAccess(patch: Partial<SiteAccessSettings>): void {
@@ -317,6 +353,7 @@ export class SiteBuilderStore {
       ...site,
       access: { ...site.access, ...patch }
     }));
+    this.logAction('site.access.updated', 'info', undefined, 'Site erisim ayarlari guncellendi.');
   }
 
   addLanguage(language: Pick<LanguageConfig, 'code' | 'label' | 'pathPrefix'>): void {
@@ -351,6 +388,7 @@ export class SiteBuilderStore {
         }))
       };
     });
+    this.logAction('language.created', 'success', undefined, `${code} dili eklendi.`);
   }
 
   updateLanguage(languageId: string, patch: Partial<Omit<LanguageConfig, 'id'>>): void {
@@ -368,6 +406,7 @@ export class SiteBuilderStore {
 
       return { ...site, languages: this.ensureDefaultLanguage(nextLanguages) };
     });
+    this.logAction('language.updated', 'info', undefined, 'Dil ayarlari guncellendi.');
   }
 
   setDefaultLanguage(languageId: string): void {
@@ -379,6 +418,7 @@ export class SiteBuilderStore {
         isDefault: language.id === languageId
       }))
     }));
+    this.logAction('language.default.updated', 'info', undefined, 'Varsayilan dil degisti.');
   }
 
   removeLanguage(languageId: string): void {
@@ -403,6 +443,7 @@ export class SiteBuilderStore {
         })
       };
     });
+    this.logAction('language.removed', 'warning', undefined, 'Dil silindi.');
   }
 
   addHostingTarget(name: string, provider: HostingProvider, firebaseProjectId: string, firebaseSiteId: string): void {
@@ -413,6 +454,7 @@ export class SiteBuilderStore {
         this.createHostingTarget(site.slug, name || 'Production', provider, firebaseProjectId, firebaseSiteId, 'draft')
       ]
     }));
+    this.logAction('hosting.created', 'success', undefined, `${name || 'Production'} hosting hedefi eklendi.`);
   }
 
   updateHostingTarget(hostingTargetId: string, patch: Partial<Omit<HostingTarget, 'id' | 'createdAt'>>): void {
@@ -428,6 +470,7 @@ export class SiteBuilderStore {
           : target
       )
     }));
+    this.logAction('hosting.updated', 'info', undefined, 'Hosting hedefi guncellendi.');
   }
 
   removeHostingTarget(hostingTargetId: string): void {
@@ -448,6 +491,7 @@ export class SiteBuilderStore {
             : site.publication
       };
     });
+    this.logAction('hosting.removed', 'warning', undefined, 'Hosting hedefi silindi.');
   }
 
   setViewport(viewport: ViewportMode): void {
@@ -468,6 +512,7 @@ export class SiteBuilderStore {
         hostingTargetId: hostingTargetId ?? site.publication.hostingTargetId ?? site.hostingTargets[0]?.id
       }
     }));
+    this.logAction('publication.requested', 'warning', undefined, 'Site yayin onayina gonderildi.');
   }
 
   approvePublication(siteId: string, days: number, approvedBy?: string): void {
@@ -502,6 +547,7 @@ export class SiteBuilderStore {
       })
     );
     this.persist();
+    this.logAction('publication.approved', 'success', siteId, `${days} gunluk yayin onayi verildi.`);
   }
 
   rejectPublication(siteId: string, reason: string, rejectedBy?: string): void {
@@ -524,6 +570,7 @@ export class SiteBuilderStore {
       )
     );
     this.persist();
+    this.logAction('publication.rejected', 'danger', siteId, reason || 'Yayin talebi reddedildi.');
   }
 
   publishToActiveHosting(siteId: string): void {
@@ -552,6 +599,57 @@ export class SiteBuilderStore {
       })
     );
     this.persist();
+    this.logAction('publication.updated', 'success', siteId, 'Aktif hosting uzerinden yayin guncellendi.');
+  }
+
+  stopPublication(siteId: string, reason = 'Yayin site yoneticisi tarafindan durduruldu.', stoppedBy?: string): void {
+    const now = new Date().toISOString();
+
+    this.projectsSignal.update((projects) =>
+      projects.map((project) =>
+        project.id === siteId
+          ? {
+              ...project,
+              status: 'draft',
+              hostingTargets: project.hostingTargets.map((target) =>
+                target.status === 'active' ? { ...target, status: 'paused' } : target
+              ),
+              publication: {
+                ...project.publication,
+                requestStatus: 'none',
+                stoppedAt: now,
+                stoppedBy,
+                stopReason: reason,
+                publishedUrl: undefined
+              }
+            }
+          : project
+      )
+    );
+    this.persist();
+    this.logAction('publication.stopped', 'danger', siteId, reason);
+  }
+
+  startSimulation(siteId: string): void {
+    this.simulatedSiteIdSignal.set(siteId);
+    globalThis.localStorage?.setItem(SIMULATION_KEY, siteId);
+    this.selectSite(siteId);
+    this.logAction('simulation.started', 'warning', siteId, 'Superadmin site yoneticisi gibi goruntulemeye basladi.');
+  }
+
+  stopSimulation(): void {
+    const siteId = this.simulatedSiteIdSignal();
+    this.simulatedSiteIdSignal.set(null);
+    globalThis.localStorage?.removeItem(SIMULATION_KEY);
+    this.logAction('simulation.stopped', 'info', siteId ?? undefined, 'Superadmin simulasyondan cikti.');
+  }
+
+  logsForSite(siteId: string): AuditLogEntry[] {
+    return this.auditLogsSignal().filter((log) => log.siteId === siteId);
+  }
+
+  recordAuditLog(action: string, level: AuditLogLevel, details: string, siteId?: string): void {
+    this.logAction(action, level, siteId, details);
   }
 
   findById(siteId: string): SiteProject | null {
@@ -908,6 +1006,23 @@ export class SiteBuilderStore {
     return (JSON.parse(raw) as ThemeConfig[]).map((theme) => this.normalizeTheme(theme));
   }
 
+  private loadAuditLogs(): AuditLogEntry[] {
+    const raw = globalThis.localStorage?.getItem(AUDIT_LOGS_KEY);
+    if (!raw) {
+      return [];
+    }
+
+    return (JSON.parse(raw) as AuditLogEntry[]).map((log) => ({
+      ...log,
+      level: log.level ?? 'info',
+      details: log.details ?? ''
+    }));
+  }
+
+  private loadSimulationSiteId(): string | null {
+    return globalThis.localStorage?.getItem(SIMULATION_KEY) ?? null;
+  }
+
   private normalizeProject(project: SiteProject): SiteProject {
     const theme = this.normalizeTheme(project.theme);
     const languages = this.ensureDefaultLanguage(
@@ -1235,11 +1350,63 @@ export class SiteBuilderStore {
   }
 
   private persist(): void {
-    globalThis.localStorage?.setItem(PROJECTS_KEY, JSON.stringify(this.projectsSignal()));
+    const projects = this.projectsSignal();
+    globalThis.localStorage?.setItem(PROJECTS_KEY, JSON.stringify(projects));
+    this.firebaseData.saveProjects(projects);
   }
 
   private persistCustomThemes(): void {
     globalThis.localStorage?.setItem(CUSTOM_THEMES_KEY, JSON.stringify(this.customThemesSignal()));
+  }
+
+  private persistAuditLogs(): void {
+    const logs = this.auditLogsSignal().slice(0, 500);
+    globalThis.localStorage?.setItem(AUDIT_LOGS_KEY, JSON.stringify(logs));
+    this.firebaseData.saveAuditLogs(logs);
+  }
+
+  private logAction(action: string, level: AuditLogLevel, siteId: string | undefined, details: string): void {
+    const site = siteId ? this.findById(siteId) : this.selectedSite();
+    const actor = this.auth.currentUser();
+    const log: AuditLogEntry = {
+      id: `log-${crypto.randomUUID()}`,
+      action,
+      level,
+      createdAt: new Date().toISOString(),
+      actorId: actor?.id ?? 'anonymous',
+      actorName: actor?.name ?? 'Anonim Kullanici',
+      siteId: site?.id,
+      siteName: site?.name,
+      details
+    };
+
+    this.auditLogsSignal.update((logs) => [log, ...logs].slice(0, 500));
+    this.persistAuditLogs();
+  }
+
+  private hydrateFromFirebase(): void {
+    if (!this.firebaseData.enabled) {
+      return;
+    }
+
+    void this.firebaseData.loadProjects().then((projects) => {
+      if (!projects.length) {
+        return;
+      }
+
+      this.projectsSignal.set(projects.map((project) => this.normalizeProject(project)));
+      this.selectedSiteIdSignal.set(this.projectsSignal()[0]?.id ?? '');
+      globalThis.localStorage?.setItem(PROJECTS_KEY, JSON.stringify(this.projectsSignal()));
+    });
+
+    void this.firebaseData.loadAuditLogs().then((logs) => {
+      if (!logs.length) {
+        return;
+      }
+
+      this.auditLogsSignal.set(logs.slice(0, 500));
+      globalThis.localStorage?.setItem(AUDIT_LOGS_KEY, JSON.stringify(this.auditLogsSignal()));
+    });
   }
 
   private uniqueSlug(baseSlug: string): string {

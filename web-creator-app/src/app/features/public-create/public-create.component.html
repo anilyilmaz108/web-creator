@@ -1,0 +1,24 @@
+<section class="public-create">
+  <div class="create-shell">
+    <div>
+      <p class="eyebrow">Public Builder</p>
+      <h1>Kendi siteni olustur</h1>
+      <p>Site public olarak tasarlanir, yayina cikmadan once admin onayina gider.</p>
+    </div>
+
+    <form (ngSubmit)="createSite()">
+      <label>
+        <span>Ad Soyad</span>
+        <input [(ngModel)]="creatorName" name="creatorName" placeholder="Istege bagli" />
+      </label>
+
+      <label>
+        <span>Site adi</span>
+        <input [(ngModel)]="siteName" name="siteName" placeholder="Ornek: Lotus Studio" />
+      </label>
+
+      <button type="submit">Siteyi Olustur</button>
+      <a routerLink="/login">Admin girisine don</a>
+    </form>
+  </div>
+</section>
