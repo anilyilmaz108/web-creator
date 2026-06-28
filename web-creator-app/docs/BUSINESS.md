@@ -30,7 +30,7 @@ Bu repo icindeki MVP su alanlari kapsar:
 - Rol bazli demo giris
 - Site portfoyu dashboardu
 - Visual builder ve responsive preview
-- Hazir section setleri, favori componentler, son kullanilanlar
+- Hazir section setleri, sektor template'leri, favori componentler, son kullanilanlar
 - Undo/redo ve manuel versiyon snapshotlari
 - Tema ve component ozellestirme
 - SEO, medya kutuphanesi, form leadleri ve maliyet politikasi
@@ -43,6 +43,7 @@ Bu repo icindeki MVP su alanlari kapsar:
 - Superadmin simulasyonu
 - Audit log
 - Review queue icinde yayin kontrol skoru
+- Superadmin log filtreleme, CSV export, site kiyaslama, maliyet alarmi ve kullanici aktivite analizi
 - Public site gorunumu
 - Kullanim ve is dokumani
 
@@ -77,6 +78,7 @@ Kapsam:
 - Audit log
 - Medya kotasi, function butcesi ve audit retention politikasi
 - Dashboardlarda summary-first reads yaklasimi
+- Bloklayici maliyet/kota kurallarinin frontend store ve Cloud Functions tarafinda enforce edilmesi
 
 ### Faz 3: Gelismis Platform
 
@@ -155,6 +157,7 @@ Mevcut yapiyi bozmadan maliyeti dusuk tutmak icin onerilen varsayilanlar:
 - Medya yuklemelerinde Storage kullanilacaksa site basina MB kotasi ve gorsel optimizasyonu zorunlu olsun.
 - Form cevaplarini Firestore'da tutarken eski leadleri arsivle veya export et.
 - Cloud Functions butcesi ve kritik function cagri sayisi icin uyarilar olustur.
+- Medya kotasi asimi ve shared-route icinde fazla hosting hedefi bloklayici alarm olsun; yayina alma ve onay akisi bu durumda calismasin.
 
 ## Riskler ve Onlemler
 

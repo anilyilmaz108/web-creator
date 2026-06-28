@@ -127,6 +127,68 @@
   min-width: 0;
 }
 
+.superadmin-tools {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.tool-card,
+.alert-card {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 18px;
+  background: #fff;
+  padding: 1rem;
+  min-width: 0;
+}
+
+.tool-card__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.comparison-controls,
+.log-filters {
+  display: grid;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.log-filters {
+  grid-template-columns: minmax(160px, 1fr) repeat(3, minmax(110px, 0.6fr)) auto;
+  margin-bottom: 1rem;
+}
+
+.comparison-table,
+.activity-table {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 0.75rem;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.alert-card--danger {
+  border-left: 5px solid #be123c;
+}
+
+.alert-card--warning {
+  border-left: 5px solid #d97706;
+}
+
 .project-card,
 .queue-card,
 .hosting-list article,
@@ -316,15 +378,21 @@ a {
 
 @media (max-width: 1180px) {
   .layout,
-  .project-card {
+  .project-card,
+  .superadmin-tools {
     grid-template-columns: 1fr;
   }
 
   .panel__header,
   .topbar,
-  .simulation-bar {
+  .simulation-bar,
+  .tool-card__header {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .log-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -338,6 +406,8 @@ a {
   }
 
   .create-project,
+  .comparison-controls,
+  .log-filters,
   .queue-card,
   .user-card,
   .topbar__actions,

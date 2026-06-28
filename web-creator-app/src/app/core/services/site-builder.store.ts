@@ -8,6 +8,7 @@ import {
   AuditLogLevel,
   BlockType,
   ChecklistStatus,
+  CostAlert,
   CtaBlock,
   DeployStrategy,
   FeaturesBlock,
@@ -101,6 +102,75 @@ export class SiteBuilderStore {
       name: 'Lead Capture',
       description: 'Form, sosyal kanit ve final aksiyon',
       blocks: [{ type: 'widget', widgetKind: 'forms' }, { type: 'widget', widgetKind: 'rating' }, { type: 'cta' }]
+    },
+    {
+      id: 'blog-page',
+      name: 'Blog Sayfasi',
+      description: 'Yazi vitrini, kategori kartlari ve bulten formu',
+      blocks: [
+        { type: 'hero' },
+        { type: 'widget', widgetKind: 'card' },
+        { type: 'widget', widgetKind: 'list-group' },
+        { type: 'widget', widgetKind: 'forms' }
+      ]
+    },
+    {
+      id: 'cafe-page',
+      name: 'Kafe Sayfasi',
+      description: 'Atmosfer, menu, galeri ve rezervasyon',
+      blocks: [
+        { type: 'hero' },
+        { type: 'widget', widgetKind: 'gallery' },
+        { type: 'table' },
+        { type: 'widget', widgetKind: 'forms' }
+      ]
+    },
+    {
+      id: 'restaurant-home',
+      name: 'Restoran Ana Sayfasi',
+      description: 'Lezzet vitrini, one cikanlar, menu ve rezervasyon',
+      blocks: [
+        { type: 'hero' },
+        { type: 'features' },
+        { type: 'table' },
+        { type: 'widget', widgetKind: 'gallery' },
+        { type: 'cta' }
+      ]
+    },
+    {
+      id: 'clinic-landing',
+      name: 'Klinik Landing',
+      description: 'Uzmanliklar, guven, randevu ve SSS',
+      blocks: [
+        { type: 'hero' },
+        { type: 'features' },
+        { type: 'widget', widgetKind: 'forms' },
+        { type: 'widget', widgetKind: 'accordion' },
+        { type: 'cta' }
+      ]
+    },
+    {
+      id: 'portfolio-page',
+      name: 'Portfolyo',
+      description: 'Proje vitrini, surec ve iletisim aksiyonu',
+      blocks: [
+        { type: 'hero' },
+        { type: 'widget', widgetKind: 'gallery' },
+        { type: 'widget', widgetKind: 'timeline' },
+        { type: 'cta' }
+      ]
+    },
+    {
+      id: 'saas-page',
+      name: 'SaaS',
+      description: 'Urun faydalari, metrikler, fiyatlama ve demo formu',
+      blocks: [
+        { type: 'hero' },
+        { type: 'features' },
+        { type: 'widget', widgetKind: 'charts' },
+        { type: 'table' },
+        { type: 'widget', widgetKind: 'forms' }
+      ]
     }
   ];
   readonly selectedSite = computed(
@@ -522,6 +592,17 @@ export class SiteBuilderStore {
   }
 
   addHostingTarget(name: string, provider: HostingProvider, firebaseProjectId: string, firebaseSiteId: string): void {
+    const site = this.selectedSite();
+    if (site?.costPolicy.deployStrategy === 'shared-route' && site.hostingTargets.length >= 1) {
+      this.logAction(
+        'cost.hosting.blocked',
+        'warning',
+        site.id,
+        'Shared-route modunda ek hosting hedefi engellendi. Dedicated hosting icin maliyet politikasini degistirin.'
+      );
+      return;
+    }
+
     this.patchSelectedSite((site) => ({
       ...site,
       hostingTargets: [
@@ -583,6 +664,17 @@ export class SiteBuilderStore {
 
   requestPublication(hostingTargetId?: string, requestedBy?: string): void {
     const site = this.selectedSite();
+    const blockingCostAlerts = site ? this.blockingCostAlerts(site) : [];
+    if (site && blockingCostAlerts.length) {
+      this.logAction(
+        'publication.blocked.cost',
+        'danger',
+        site.id,
+        `${blockingCostAlerts.length} bloklayici maliyet/kota uyarisi nedeniyle yayin talebi engellendi.`
+      );
+      return;
+    }
+
     const failedChecks = site ? this.publicationChecklist(site).filter((item) => item.status === 'fail') : [];
     this.patchSelectedSite((site) => ({
       ...site,
@@ -604,6 +696,18 @@ export class SiteBuilderStore {
   }
 
   approvePublication(siteId: string, days: number, approvedBy?: string): void {
+    const project = this.findById(siteId);
+    const blockingCostAlerts = project ? this.blockingCostAlerts(project) : [];
+    if (project && blockingCostAlerts.length) {
+      this.logAction(
+        'publication.approval.blocked.cost',
+        'danger',
+        siteId,
+        `${blockingCostAlerts.length} bloklayici maliyet/kota uyarisi nedeniyle onay engellendi.`
+      );
+      return;
+    }
+
     const now = new Date();
     const approvedUntil = new Date(now);
     approvedUntil.setDate(now.getDate() + days);
@@ -662,6 +766,18 @@ export class SiteBuilderStore {
   }
 
   publishToActiveHosting(siteId: string): void {
+    const project = this.findById(siteId);
+    const blockingCostAlerts = project ? this.blockingCostAlerts(project) : [];
+    if (project && blockingCostAlerts.length) {
+      this.logAction(
+        'publication.update.blocked.cost',
+        'danger',
+        siteId,
+        `${blockingCostAlerts.length} bloklayici maliyet/kota uyarisi nedeniyle yayin guncelleme engellendi.`
+      );
+      return;
+    }
+
     const now = new Date().toISOString();
     this.projectsSignal.update((projects) =>
       projects.map((project) => {
@@ -830,12 +946,472 @@ export class SiteBuilderStore {
       return;
     }
 
-    const blocks = template.blocks.map((item) =>
-      item.type === 'widget' && item.widgetKind ? this.createWidget(item.widgetKind) : this.createBlock(item.type)
-    );
+    const blocks = template.blocks.map((item, index) => this.createSectionTemplateBlock(template.id, item, index));
     this.patchSelectedPage((page) => ({ ...page, blocks: [...page.blocks, ...blocks] }));
     this.selectedBlockIdSignal.set(blocks[0]?.id ?? this.selectedBlockIdSignal());
     this.logAction('section.template.added', 'success', undefined, `${template.name} section seti eklendi.`);
+  }
+
+  private createSectionTemplateBlock(
+    templateId: string,
+    item: { type: BlockType; widgetKind?: WidgetKind },
+    index: number
+  ): PageBlock {
+    const block = item.type === 'widget' && item.widgetKind ? this.createWidget(item.widgetKind) : this.createBlock(item.type);
+    return this.customizeSectionTemplateBlock(templateId, block, index);
+  }
+
+  private customizeSectionTemplateBlock(templateId: string, block: PageBlock, index: number): PageBlock {
+    const copy = { ...block };
+
+    if (templateId === 'blog-page') {
+      return this.customizeBlogTemplate(copy, index);
+    }
+
+    if (templateId === 'cafe-page') {
+      return this.customizeCafeTemplate(copy, index);
+    }
+
+    if (templateId === 'restaurant-home') {
+      return this.customizeRestaurantTemplate(copy, index);
+    }
+
+    if (templateId === 'clinic-landing') {
+      return this.customizeClinicTemplate(copy, index);
+    }
+
+    if (templateId === 'portfolio-page') {
+      return this.customizePortfolioTemplate(copy, index);
+    }
+
+    if (templateId === 'saas-page') {
+      return this.customizeSaasTemplate(copy, index);
+    }
+
+    return copy;
+  }
+
+  private customizeBlogTemplate(block: PageBlock, index: number): PageBlock {
+    if (block.type === 'hero') {
+      return {
+        ...block,
+        title: 'Blog Hero',
+        eyebrow: 'Blog',
+        heading: 'Guncel yazilar, rehberler ve ilham veren fikirler',
+        body: 'Okuyuculariniz icin kategori bazli yazilar, one cikan icerikler ve bulten akisi hazirlayin.',
+        buttons: [this.createActionButton('Yazilari Kesfet', '#blog', 'solid')],
+        imageUrl: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=1200&q=80'
+      } as HeroBlock;
+    }
+
+    if (block.type === 'widget' && block.widgetKind === 'card') {
+      return {
+        ...block,
+        title: 'One Cikan Yazilar',
+        subtitle: 'Editorden secilenler',
+        body: 'En cok okunan veya yeni yayinlanan icerikleri kartlar halinde sunun.',
+        items: ['Rehber Yazisi', 'Trend Analizi', 'Basari Hikayesi'],
+        detailItems: [
+          'Adim adim anlatimli uzun form icerik.',
+          'Sektordeki yeni egilimleri ozetleyen analiz.',
+          'Musteri veya topluluk hikayesini anlatan yazi.'
+        ],
+        linkUrls: ['/blog/rehber', '/blog/trend-analizi', '/blog/basari-hikayesi']
+      } as WidgetBlock;
+    }
+
+    if (block.type === 'widget' && block.widgetKind === 'list-group') {
+      return {
+        ...block,
+        title: 'Kategoriler',
+        subtitle: 'Icerik haritasi',
+        body: 'Blog okuyucularinin konu basliklarina hizli ulasmasini saglayin.',
+        items: ['Pazarlama', 'Tasarim', 'Teknoloji', 'Girisimcilik'],
+        detailItems: ['Buyume notlari', 'UI/UX rehberleri', 'Urun ve yazilim', 'Is kurma pratikleri'],
+        linkUrls: ['/blog/pazarlama', '/blog/tasarim', '/blog/teknoloji', '/blog/girisimcilik']
+      } as WidgetBlock;
+    }
+
+    if (block.type === 'widget' && block.widgetKind === 'forms') {
+      return {
+        ...block,
+        title: 'Bultene Katil',
+        subtitle: 'Haftalik ozet',
+        body: 'Yeni yazilari ve kaynaklari e-posta kutunuza alin.',
+        actionLabel: 'Abone Ol',
+        items: ['Ad Soyad', 'E-posta', 'Ilgi Alani'],
+        detailItems: ['text', 'email', 'select'],
+        linkUrls: ['Adinizi girin', 'ornek@site.com', 'Kategori secin'],
+        mediaUrls: ['', '', 'Pazarlama,Tasarim,Teknoloji']
+      } as WidgetBlock;
+    }
+
+    return { ...block, title: `Blog Bolumu ${index + 1}` };
+  }
+
+  private customizeCafeTemplate(block: PageBlock, index: number): PageBlock {
+    if (block.type === 'hero') {
+      return {
+        ...block,
+        title: 'Kafe Hero',
+        eyebrow: 'Mahalle kafesi',
+        heading: 'Taze kahve, sicak atmosfer ve gunluk tatlilar',
+        body: 'Menunuzu, calisma saatlerinizi ve rezervasyon akisinizi tek sayfada modern bir sekilde sunun.',
+        buttons: [this.createActionButton('Menuyu Gor', '#menu', 'solid'), this.createActionButton('Rezervasyon', '#rezervasyon', 'outline')],
+        imageUrl: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=1200&q=80'
+      } as HeroBlock;
+    }
+
+    if (block.type === 'widget' && block.widgetKind === 'gallery') {
+      return {
+        ...block,
+        title: 'Kafe Atmosferi',
+        subtitle: 'Galeri',
+        body: 'Mekan, kahve ve tatli gorsellerinizi vitrine cikarin.',
+        items: ['Barista bar', 'Tatlilar', 'Calisma kosesi'],
+        detailItems: ['Gunluk kahve hazirligi', 'Vitrin lezzetleri', 'Sessiz calisma alani'],
+        mediaUrls: [
+          'https://images.unsplash.com/photo-1442512595331-e89e73853f31?auto=format&fit=crop&w=1200&q=80',
+          'https://images.unsplash.com/photo-1517686469429-8bdb88b9f907?auto=format&fit=crop&w=1200&q=80',
+          'https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&w=1200&q=80'
+        ]
+      } as WidgetBlock;
+    }
+
+    if (block.type === 'table') {
+      return {
+        ...block,
+        title: 'Kafe Menusu',
+        columns: ['Urun', 'Icerik', 'Fiyat'],
+        rows: [
+          { cells: ['Flat White', 'Cift shot espresso, sut', '120 TL'] },
+          { cells: ['Cold Brew', '18 saat demleme', '135 TL'] },
+          { cells: ['San Sebastian', 'Gunluk tatli', '165 TL'] }
+        ]
+      } as TableBlock;
+    }
+
+    if (block.type === 'widget' && block.widgetKind === 'forms') {
+      return {
+        ...block,
+        title: 'Rezervasyon Al',
+        subtitle: 'Masa ayir',
+        actionLabel: 'Rezervasyon Gonder',
+        items: ['Ad Soyad', 'Telefon', 'Tarih', 'Saat'],
+        detailItems: ['text', 'phone', 'date', 'time'],
+        linkUrls: ['Adinizi girin', '05xx xxx xx xx', '', '']
+      } as WidgetBlock;
+    }
+
+    return { ...block, title: `Kafe Bolumu ${index + 1}` };
+  }
+
+  private customizeRestaurantTemplate(block: PageBlock, index: number): PageBlock {
+    if (block.type === 'hero') {
+      return {
+        ...block,
+        title: 'Restoran Hero',
+        eyebrow: 'Fine casual restoran',
+        heading: 'Mevsimsel lezzetler ve unutulmaz aksam yemekleri',
+        body: 'Restoraninizin imza tabaklarini, menulerini ve rezervasyon aksiyonunu guclu bir ana sayfada toplayin.',
+        buttons: [this.createActionButton('Rezervasyon Yap', '#rezervasyon', 'solid'), this.createActionButton('Menuyu Incele', '#menu', 'outline')],
+        imageUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80'
+      } as HeroBlock;
+    }
+
+    if (block.type === 'features') {
+      return {
+        ...block,
+        title: 'One Cikan Deneyimler',
+        items: [
+          {
+            title: 'Sezon Menusu',
+            body: 'Yerel ureticilerden gelen taze urunlerle hazirlanan menuler.',
+            imageUrl: 'https://images.unsplash.com/photo-1551218808-94e220e084d2?auto=format&fit=crop&w=1200&q=80',
+            linkUrl: '#menu',
+            linkTarget: '_self'
+          },
+          {
+            title: 'Ozel Davetler',
+            body: 'Dogum gunu, is yemegi ve kutlamalar icin ayrilabilir alanlar.',
+            imageUrl: 'https://images.unsplash.com/photo-1559329007-40df8a9345d8?auto=format&fit=crop&w=1200&q=80',
+            linkUrl: '#iletisim',
+            linkTarget: '_self'
+          },
+          {
+            title: 'Sommelier Secimi',
+            body: 'Yemeklerle eslesen icecek onerileri ve tadim akislari.',
+            imageUrl: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=1200&q=80',
+            linkUrl: '#menu',
+            linkTarget: '_self'
+          }
+        ]
+      } as FeaturesBlock;
+    }
+
+    if (block.type === 'table') {
+      return {
+        ...block,
+        title: 'Imza Menu',
+        columns: ['Tabak', 'Aciklama', 'Fiyat'],
+        rows: [
+          { cells: ['Deniz Levregi', 'Narenciye, rezene, ot yagi', '620 TL'] },
+          { cells: ['Dana Yanak', 'Kok sebzeler, jus sos', '740 TL'] },
+          { cells: ['Tiramisu', 'Mascarpone, espresso, kakao', '280 TL'] }
+        ]
+      } as TableBlock;
+    }
+
+    if (block.type === 'widget' && block.widgetKind === 'gallery') {
+      return {
+        ...block,
+        title: 'Mutfaktan Kareler',
+        subtitle: 'Galeri',
+        items: ['Imza tabak', 'Salon', 'Tatli'],
+        mediaUrls: [
+          'https://images.unsplash.com/photo-1543352634-a1c51d9f1fa7?auto=format&fit=crop&w=1200&q=80',
+          'https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=1200&q=80',
+          'https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=1200&q=80'
+        ]
+      } as WidgetBlock;
+    }
+
+    if (block.type === 'cta') {
+      return {
+        ...block,
+        title: 'Rezervasyon CTA',
+        heading: 'Bu aksam icin masanizi ayirin.',
+        body: 'Ekibimiz uygun saatleri onaylamak icin sizinle iletisime gececek.',
+        actionLabel: 'Rezervasyon Yap',
+        actionUrl: '#rezervasyon'
+      } as CtaBlock;
+    }
+
+    return { ...block, title: `Restoran Bolumu ${index + 1}` };
+  }
+
+  private customizeClinicTemplate(block: PageBlock, index: number): PageBlock {
+    if (block.type === 'hero') {
+      return {
+        ...block,
+        title: 'Klinik Hero',
+        eyebrow: 'Saglik ve guven',
+        heading: 'Uzman ekip ile kolay randevu ve net bilgilendirme',
+        body: 'Hizmetlerinizi, doktor ekibinizi ve randevu akisinizi sade bir landing sayfasinda anlatin.',
+        buttons: [this.createActionButton('Randevu Al', '#randevu', 'solid'), this.createActionButton('Hizmetleri Gor', '#hizmetler', 'outline')],
+        imageUrl: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1200&q=80'
+      } as HeroBlock;
+    }
+
+    if (block.type === 'features') {
+      return {
+        ...block,
+        title: 'Klinik Hizmetleri',
+        items: [
+          {
+            title: 'Muayene',
+            body: 'Ilk degerlendirme ve tedavi planlama.',
+            imageUrl: 'https://images.unsplash.com/photo-1584982751601-97dcc096659c?auto=format&fit=crop&w=1200&q=80',
+            linkUrl: '#randevu',
+            linkTarget: '_self'
+          },
+          {
+            title: 'Kontrol',
+            body: 'Tedavi surecini takip eden planli kontroller.',
+            imageUrl: 'https://images.unsplash.com/photo-1584515933487-779824d29309?auto=format&fit=crop&w=1200&q=80',
+            linkUrl: '#randevu',
+            linkTarget: '_self'
+          },
+          {
+            title: 'Danismanlik',
+            body: 'Online veya yuz yuze bilgilendirme gorusmeleri.',
+            imageUrl: 'https://images.unsplash.com/photo-1550831107-1553da8c8464?auto=format&fit=crop&w=1200&q=80',
+            linkUrl: '#iletisim',
+            linkTarget: '_self'
+          }
+        ]
+      } as FeaturesBlock;
+    }
+
+    if (block.type === 'widget' && block.widgetKind === 'forms') {
+      return {
+        ...block,
+        title: 'Randevu Talebi',
+        subtitle: 'Hizli basvuru',
+        actionLabel: 'Randevu Talebi Gonder',
+        items: ['Ad Soyad', 'Telefon', 'Brans', 'Uygun Tarih'],
+        detailItems: ['text', 'phone', 'select', 'date'],
+        mediaUrls: ['', '', 'Genel Muayene,Kontrol,Danismanlik', '']
+      } as WidgetBlock;
+    }
+
+    if (block.type === 'widget' && block.widgetKind === 'accordion') {
+      return {
+        ...block,
+        title: 'Sik Sorulan Sorular',
+        subtitle: 'Hasta bilgilendirme',
+        items: ['Randevu nasil alinir?', 'Online gorusme var mi?', 'Sonuclar ne zaman paylasilir?'],
+        detailItems: [
+          'Formu doldurduktan sonra ekip uygun saatler icin sizinle iletisime gecer.',
+          'Uygun hizmetler icin online gorusme planlanabilir.',
+          'Tetkik ve sonuc sureleri hizmete gore degisir, ekip tarafindan bilgilendirme yapilir.'
+        ]
+      } as WidgetBlock;
+    }
+
+    if (block.type === 'cta') {
+      return {
+        ...block,
+        title: 'Klinik CTA',
+        heading: 'Size uygun randevu saatini birlikte planlayalim.',
+        body: 'Formu doldurun, hasta danismani en kisa surede donus yapsin.',
+        actionLabel: 'Randevu Al',
+        actionUrl: '#randevu'
+      } as CtaBlock;
+    }
+
+    return { ...block, title: `Klinik Bolumu ${index + 1}` };
+  }
+
+  private customizePortfolioTemplate(block: PageBlock, index: number): PageBlock {
+    if (block.type === 'hero') {
+      return {
+        ...block,
+        title: 'Portfolyo Hero',
+        eyebrow: 'Selected works',
+        heading: 'Projeleri, sureci ve yaratici yaklasimi tek vitrinde toplayin',
+        body: 'Tasarim, yazilim veya kreatif islerinizi kategori ve vaka calismalariyla sunun.',
+        buttons: [this.createActionButton('Projeleri Gor', '#projeler', 'solid')],
+        imageUrl: 'https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1200&q=80'
+      } as HeroBlock;
+    }
+
+    if (block.type === 'widget' && block.widgetKind === 'gallery') {
+      return {
+        ...block,
+        title: 'Proje Vitrini',
+        subtitle: 'Portfolyo',
+        items: ['Branding', 'Web App', 'Landing Page'],
+        detailItems: ['Kimlik tasarimi', 'Urun arayuzu', 'Kampanya sayfasi'],
+        mediaUrls: [
+          'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80',
+          'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
+          'https://images.unsplash.com/photo-1559028012-481c04fa702d?auto=format&fit=crop&w=1200&q=80'
+        ],
+        linkUrls: ['/portfolio/branding', '/portfolio/web-app', '/portfolio/landing']
+      } as WidgetBlock;
+    }
+
+    if (block.type === 'widget' && block.widgetKind === 'timeline') {
+      return {
+        ...block,
+        title: 'Calisma Sureci',
+        subtitle: 'Workflow',
+        items: ['Kesif', 'Tasarim', 'Teslim'],
+        detailItems: [
+          'Hedef, hedef kitle ve kapsam netlestirilir.',
+          'Wireframe, gorsel dil ve prototip hazirlanir.',
+          'Yayin, dokumantasyon ve son kontroller tamamlanir.'
+        ]
+      } as WidgetBlock;
+    }
+
+    if (block.type === 'cta') {
+      return {
+        ...block,
+        title: 'Portfolyo CTA',
+        heading: 'Yeni proje icin birlikte calisalim.',
+        body: 'Kisa bir brief gonderin, size en uygun is akisini planlayalim.',
+        actionLabel: 'Brief Gonder',
+        actionUrl: 'mailto:hello@example.com'
+      } as CtaBlock;
+    }
+
+    return { ...block, title: `Portfolyo Bolumu ${index + 1}` };
+  }
+
+  private customizeSaasTemplate(block: PageBlock, index: number): PageBlock {
+    if (block.type === 'hero') {
+      return {
+        ...block,
+        title: 'SaaS Hero',
+        eyebrow: 'B2B SaaS',
+        heading: 'Ekiplerin operasyonunu tek panelden hizlandirin',
+        body: 'Urun faydalarini, metrikleri, fiyatlamayi ve demo talebini modern bir SaaS sayfasinda sunun.',
+        buttons: [this.createActionButton('Demo Talep Et', '#demo', 'solid'), this.createActionButton('Fiyatlari Gor', '#pricing', 'outline')],
+        imageUrl: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80'
+      } as HeroBlock;
+    }
+
+    if (block.type === 'features') {
+      return {
+        ...block,
+        title: 'Urun Faydalari',
+        items: [
+          {
+            title: 'Otomasyon',
+            body: 'Tekrarlayan operasyonlari standart akislara baglayin.',
+            imageUrl: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80',
+            linkUrl: '#features',
+            linkTarget: '_self'
+          },
+          {
+            title: 'Analitik',
+            body: 'Ekip performansi ve is sonuclarini tek ekranda izleyin.',
+            imageUrl: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80',
+            linkUrl: '#metrics',
+            linkTarget: '_self'
+          },
+          {
+            title: 'Guvenlik',
+            body: 'Rol bazli yetki ve islem gecmisiyle kontrolu koruyun.',
+            imageUrl: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?auto=format&fit=crop&w=1200&q=80',
+            linkUrl: '#security',
+            linkTarget: '_self'
+          }
+        ]
+      } as FeaturesBlock;
+    }
+
+    if (block.type === 'widget' && block.widgetKind === 'charts') {
+      return {
+        ...block,
+        title: 'Performans Metrikleri',
+        subtitle: 'Growth dashboard',
+        body: 'Urun etkisini sayilarla gosterin.',
+        items: ['Aktivasyon', 'Retention', 'Donusum'],
+        detailItems: ['Ilk hafta aktivasyon', 'Aylik geri donus', 'Demo-dan satis donusumu'],
+        numericValues: [68, 74, 42],
+        variant: 'bar'
+      } as WidgetBlock;
+    }
+
+    if (block.type === 'table') {
+      return {
+        ...block,
+        title: 'Fiyatlama',
+        columns: ['Plan', 'Kimler icin', 'Aylik'],
+        rows: [
+          { cells: ['Starter', 'Kucuk ekipler', '29 USD'] },
+          { cells: ['Growth', 'Buyuyen ekipler', '79 USD'] },
+          { cells: ['Scale', 'Kurumsal operasyon', 'Custom'] }
+        ]
+      } as TableBlock;
+    }
+
+    if (block.type === 'widget' && block.widgetKind === 'forms') {
+      return {
+        ...block,
+        title: 'Demo Talebi',
+        subtitle: 'Satis ekibi',
+        actionLabel: 'Demo Planla',
+        items: ['Ad Soyad', 'Is e-postasi', 'Sirket', 'Ekip buyuklugu'],
+        detailItems: ['text', 'email', 'text', 'select'],
+        mediaUrls: ['', '', '', '1-10,11-50,51-250,250+']
+      } as WidgetBlock;
+    }
+
+    return { ...block, title: `SaaS Bolumu ${index + 1}` };
   }
 
   toggleFavoriteWidget(kind: WidgetKind): void {
@@ -858,6 +1434,18 @@ export class SiteBuilderStore {
   }
 
   addMediaAsset(asset: Omit<MediaAsset, 'id' | 'createdAt' | 'optimized'>): void {
+    const site = this.selectedSite();
+    const nextMediaMb = site ? this.mediaUsageMb(site) + asset.sizeKb / 1024 : 0;
+    if (site && nextMediaMb > site.costPolicy.mediaLimitMb) {
+      this.logAction(
+        'cost.media.quota.blocked',
+        'danger',
+        site.id,
+        `Medya kotasi asildigi icin ${asset.name} eklenmedi. Limit: ${site.costPolicy.mediaLimitMb} MB.`
+      );
+      return;
+    }
+
     const nextAsset: MediaAsset = {
       id: `media-${crypto.randomUUID()}`,
       createdAt: new Date().toISOString(),
@@ -898,7 +1486,14 @@ export class SiteBuilderStore {
         ...patch
       }
     }));
-    this.logAction('cost.policy.updated', 'warning', undefined, 'Maliyet politikasi guncellendi.');
+    const site = this.selectedSite();
+    const alerts = site ? this.costAlerts(site).filter((alert) => alert.severity !== 'info') : [];
+    this.logAction(
+      alerts.some((alert) => alert.blocking) ? 'cost.policy.alert' : 'cost.policy.updated',
+      alerts.some((alert) => alert.blocking) ? 'danger' : 'warning',
+      site?.id,
+      alerts.length ? `${alerts.length} maliyet/kota uyarisi olustu.` : 'Maliyet politikasi guncellendi.'
+    );
   }
 
   publicationChecklist(project: SiteProject): PublicationChecklistItem[] {
@@ -920,6 +1515,111 @@ export class SiteBuilderStore {
       this.checklistItem('hosting-strategy', 'Yayin stratejisi', project.costPolicy.deployStrategy === 'shared-route' || project.hostingTargets.length > 0, 'Dedicated hosting secildiyse hosting hedefi tanimli olmali.'),
       this.checklistItem('forms', 'Form/lead hazirligi', blocks.some((block) => block.type === 'widget' && block.widgetKind === 'forms') || project.access.mode === 'public', 'Uyelikli akislarda lead veya form kurgusu onerilir.', 'warning')
     ];
+  }
+
+  costAlerts(project: SiteProject): CostAlert[] {
+    const alerts: CostAlert[] = [];
+    const mediaMb = this.mediaUsageMb(project);
+    const mediaRatio = project.costPolicy.mediaLimitMb > 0 ? mediaMb / project.costPolicy.mediaLimitMb : 0;
+    const activeHostingCount = project.hostingTargets.filter((target) => target.status === 'active').length;
+    const estimatedFunctionEvents = this.estimatedMonthlyFunctionEvents(project);
+    const functionEventLimit = Math.max(50, project.costPolicy.monthlyFunctionBudget * 100);
+
+    if (mediaMb > project.costPolicy.mediaLimitMb) {
+      alerts.push({
+        id: `${project.id}-media-block`,
+        siteId: project.id,
+        siteName: project.name,
+        severity: 'danger',
+        title: 'Medya kotasi asildi',
+        details: `${mediaMb.toFixed(1)} MB kullaniliyor, limit ${project.costPolicy.mediaLimitMb} MB.`,
+        blocking: true
+      });
+    } else if (mediaRatio >= 0.8) {
+      alerts.push({
+        id: `${project.id}-media-warning`,
+        siteId: project.id,
+        siteName: project.name,
+        severity: 'warning',
+        title: 'Medya kotasi yaklasiyor',
+        details: `${mediaMb.toFixed(1)} MB kullaniliyor, limit ${project.costPolicy.mediaLimitMb} MB.`,
+        blocking: false
+      });
+    }
+
+    if (project.costPolicy.deployStrategy === 'shared-route' && project.hostingTargets.length > 1) {
+      alerts.push({
+        id: `${project.id}-shared-hosting-block`,
+        siteId: project.id,
+        siteName: project.name,
+        severity: 'danger',
+        title: 'Shared-route ile fazla hosting hedefi',
+        details: 'Shared-route maliyet modu tek hosting hedefiyle calismali. Ek hedefler icin dedicated-hosting secin.',
+        blocking: true
+      });
+    }
+
+    if (project.costPolicy.deployStrategy === 'dedicated-hosting' && project.hostingTargets.length > 1) {
+      alerts.push({
+        id: `${project.id}-dedicated-cost`,
+        siteId: project.id,
+        siteName: project.name,
+        severity: 'warning',
+        title: 'Dedicated hosting maliyeti',
+        details: `${project.hostingTargets.length} hosting hedefi var. Her hedef ek operasyon maliyeti yaratabilir.`,
+        blocking: false
+      });
+    }
+
+    if (activeHostingCount > 1) {
+      alerts.push({
+        id: `${project.id}-active-hosting`,
+        siteId: project.id,
+        siteName: project.name,
+        severity: 'warning',
+        title: 'Birden fazla aktif hosting',
+        details: `${activeHostingCount} aktif hedef var. Gereksiz hedefleri paused yapin.`,
+        blocking: false
+      });
+    }
+
+    if (project.costPolicy.auditRetentionDays > 180) {
+      alerts.push({
+        id: `${project.id}-retention`,
+        siteId: project.id,
+        siteName: project.name,
+        severity: 'warning',
+        title: 'Uzun log saklama',
+        details: `${project.costPolicy.auditRetentionDays} gun log saklama Firestore okuma/yazma ve depolama maliyetini artirabilir.`,
+        blocking: false
+      });
+    }
+
+    if (!project.costPolicy.summaryFirstReads) {
+      alerts.push({
+        id: `${project.id}-summary-first`,
+        siteId: project.id,
+        siteName: project.name,
+        severity: 'warning',
+        title: 'Ozet veri onceligi kapali',
+        details: 'Dashboardlar detay dokuman okumaya kayabilir. Ozet veri onceligi maliyeti dusurur.',
+        blocking: false
+      });
+    }
+
+    if (estimatedFunctionEvents > functionEventLimit) {
+      alerts.push({
+        id: `${project.id}-function-budget`,
+        siteId: project.id,
+        siteName: project.name,
+        severity: 'warning',
+        title: 'Function butcesi alarmi',
+        details: `Tahmini aylik olay ${estimatedFunctionEvents}, takip limiti ${functionEventLimit}.`,
+        blocking: false
+      });
+    }
+
+    return alerts;
   }
 
   private patchSelectedSite(updater: (site: SiteProject) => SiteProject, options: { skipUndo?: boolean } = {}): void {
@@ -1764,6 +2464,21 @@ export class SiteBuilderStore {
     globalThis.localStorage?.setItem(PROJECTS_KEY, JSON.stringify(projects));
     this.firebaseData.saveProjects(projects);
     this.lastSavedAtSignal.set(new Date().toISOString());
+  }
+
+  private blockingCostAlerts(project: SiteProject): CostAlert[] {
+    return this.costAlerts(project).filter((alert) => alert.blocking);
+  }
+
+  private mediaUsageMb(project: SiteProject): number {
+    return project.mediaAssets.reduce((total, asset) => total + asset.sizeKb, 0) / 1024;
+  }
+
+  private estimatedMonthlyFunctionEvents(project: SiteProject): number {
+    const siteLogs = this.auditLog.logsForSite(project.id).length;
+    const leadEvents = project.formSubmissions.length * 2;
+    const hostingEvents = project.hostingTargets.length * 8;
+    return siteLogs + leadEvents + hostingEvents;
   }
 
   private collectLinks(project: SiteProject): string[] {

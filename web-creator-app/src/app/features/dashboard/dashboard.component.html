@@ -140,6 +140,96 @@
           </article>
         }
       </div>
+
+      @if (currentUser()?.role === 'superadmin') {
+        <section class="superadmin-tools">
+          <article class="tool-card">
+            <div class="tool-card__header">
+              <div>
+                <h3>Detayli Site Kiyaslama</h3>
+                <p>Iki siteyi kalite, maliyet ve operasyon metrikleriyle karsilastirin.</p>
+              </div>
+              <div class="comparison-controls">
+                <select [ngModel]="comparisonAId" (ngModelChange)="updateComparison('first', $event)">
+                  <option value="">Ilk site</option>
+                  @for (project of visibleProjects(); track project.id) {
+                    <option [value]="project.id">{{ project.name }}</option>
+                  }
+                </select>
+                <select [ngModel]="comparisonBId" (ngModelChange)="updateComparison('second', $event)">
+                  <option value="">Ikinci site</option>
+                  @for (project of visibleProjects(); track project.id) {
+                    <option [value]="project.id">{{ project.name }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            @if (comparisonSites().first && comparisonSites().second) {
+              <div class="comparison-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Metrik</th>
+                      <th>{{ comparisonSites().first.name }}</th>
+                      <th>{{ comparisonSites().second?.name || '' }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (row of comparisonRows(); track row.label) {
+                      <tr>
+                        <td>{{ row.label }}</td>
+                        <td>{{ row.first }}</td>
+                        <td>{{ row.second }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <p class="empty-inline">Kiyaslama icin en az iki site gerekir.</p>
+            }
+          </article>
+
+          <article class="tool-card">
+            <div class="tool-card__header">
+              <div>
+                <h3>Kullanici Aktivitesi</h3>
+                <p>Islem gecmisinden kullanici bazli aktivite ozeti.</p>
+              </div>
+            </div>
+
+            <div class="activity-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Kullanici</th>
+                    <th>Islem</th>
+                    <th>Uyari</th>
+                    <th>Risk</th>
+                    <th>Son aktivite</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of userActivityRows(); track row.actorId || row.actorName) {
+                    <tr>
+                      <td>{{ row.actorName }}</td>
+                      <td>{{ row.total }}</td>
+                      <td>{{ row.warnings }}</td>
+                      <td>{{ row.danger }}</td>
+                      <td>{{ formatDate(row.lastAt) }}</td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="5">Aktivite kaydi yok.</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+      }
     </main>
 
     <aside class="side-stack">
@@ -181,9 +271,62 @@
         <section class="panel">
           <div class="panel__header">
             <div>
-              <h2>Islem Gecmisi</h2>
-              <p>{{ criticalLogCount() }} kritik, {{ authLogCount() }} auth kaydi.</p>
+              <h2>Maliyet Alarmlari</h2>
+              <p>{{ blockingCostAlertCount() }} bloklayici, {{ costAlerts().length }} toplam alarm.</p>
             </div>
+          </div>
+
+          <div class="cost-alerts">
+            @for (alert of costAlerts(); track alert.id) {
+              <article class="alert-card" [ngClass]="alertClass(alert)">
+                <div>
+                  <span>{{ alert.severity }}</span>
+                  @if (alert.blocking) {
+                    <strong>Bloklayici</strong>
+                  }
+                </div>
+                <h3>{{ alert.title }}</h3>
+                <p>{{ alert.siteName }} - {{ alert.details }}</p>
+              </article>
+            } @empty {
+              <article class="alert-card alert-card--info">
+                <div><span>info</span></div>
+                <h3>Alarm yok</h3>
+                <p>Maliyet ve kota ayarlari su an normal gorunuyor.</p>
+              </article>
+            }
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel__header">
+            <div>
+              <h2>Islem Gecmisi</h2>
+              <p>{{ filteredLogs().length }} filtreli, {{ criticalLogCount() }} kritik, {{ authLogCount() }} auth kaydi.</p>
+            </div>
+            <button type="button" class="button-muted" (click)="exportFilteredLogs()">CSV Export</button>
+          </div>
+
+          <div class="log-filters">
+            <input [ngModel]="logFilter.search" (ngModelChange)="updateLogFilter('search', $event)" placeholder="Aksiyon, detay, aktor veya site ara" />
+            <select [ngModel]="logFilter.level" (ngModelChange)="updateLogFilter('level', $event)">
+              @for (level of logLevelOptions; track level) {
+                <option [value]="level">{{ level }}</option>
+              }
+            </select>
+            <select [ngModel]="logFilter.siteId" (ngModelChange)="updateLogFilter('siteId', $event)">
+              <option value="all">Tum siteler</option>
+              @for (project of visibleProjects(); track project.id) {
+                <option [value]="project.id">{{ project.name }}</option>
+              }
+            </select>
+            <select [ngModel]="logFilter.actorId" (ngModelChange)="updateLogFilter('actorId', $event)">
+              <option value="all">Tum aktorler</option>
+              @for (user of users(); track user.id) {
+                <option [value]="user.id">{{ user.name }}</option>
+              }
+            </select>
+            <button type="button" class="button-muted" (click)="clearLogFilters()">Temizle</button>
           </div>
 
           <div class="log-list">

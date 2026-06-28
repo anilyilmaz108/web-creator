@@ -28,6 +28,15 @@ interface HostingTarget {
   status?: string;
 }
 
+interface MediaAsset {
+  sizeKb?: number;
+}
+
+interface SiteCostPolicy {
+  deployStrategy?: 'shared-route' | 'dedicated-hosting';
+  mediaLimitMb?: number;
+}
+
 interface SiteDocument {
   id: string;
   name: string;
@@ -36,6 +45,8 @@ interface SiteDocument {
   status: string;
   publication?: Record<string, unknown>;
   hostingTargets?: HostingTarget[];
+  mediaAssets?: MediaAsset[];
+  costPolicy?: SiteCostPolicy;
 }
 
 const allowedRoles: UserRole[] = ['superadmin', 'admin', 'moderator', 'visitor'];
@@ -110,6 +121,18 @@ export const requestPublication = onCall({ region }, async (request) => {
   const actor = await requireSignedUser(request.auth?.uid);
   const siteId = readString(request.data?.siteId, 'siteId');
   const site = await requireManageableSite(siteId, actor);
+  const blockingCostAlerts = blockingCostAlertsForSite(site);
+  if (blockingCostAlerts.length) {
+    await writeAuditLog({
+      action: 'publication.blocked.cost',
+      level: 'danger',
+      actor,
+      site,
+      details: `${blockingCostAlerts.length} bloklayici maliyet/kota uyarisi: ${blockingCostAlerts.join(' | ')}`
+    });
+    throw new HttpsError('failed-precondition', 'Bloklayici maliyet/kota uyarilari cozulmeden yayin talebi olusturulamaz.');
+  }
+
   const hostingTargetId = typeof request.data?.hostingTargetId === 'string'
     ? request.data.hostingTargetId
     : site.publication?.['hostingTargetId'] ?? site.hostingTargets?.[0]?.id;
@@ -144,6 +167,18 @@ export const approvePublication = onCall({ region }, async (request) => {
   const siteId = readString(request.data?.siteId, 'siteId');
   const days = Math.max(Number(request.data?.days ?? 30), 1);
   const site = await requireSite(siteId);
+  const blockingCostAlerts = blockingCostAlertsForSite(site);
+  if (blockingCostAlerts.length) {
+    await writeAuditLog({
+      action: 'publication.approval.blocked.cost',
+      level: 'danger',
+      actor,
+      site,
+      details: `${blockingCostAlerts.length} bloklayici maliyet/kota uyarisi: ${blockingCostAlerts.join(' | ')}`
+    });
+    throw new HttpsError('failed-precondition', 'Bloklayici maliyet/kota uyarilari cozulmeden yayin onaylanamaz.');
+  }
+
   const now = new Date();
   const approvedUntil = new Date(now);
   approvedUntil.setDate(now.getDate() + days);
@@ -349,6 +384,30 @@ function resolvePublishedUrl(target: HostingTarget | undefined): string {
   }
 
   return target.customDomain || target.defaultUrl || `https://${target.firebaseSiteId}.web.app`;
+}
+
+function blockingCostAlertsForSite(site: SiteDocument): string[] {
+  const policy = {
+    deployStrategy: site.costPolicy?.deployStrategy ?? 'shared-route',
+    mediaLimitMb: Math.max(Number(site.costPolicy?.mediaLimitMb ?? 50), 5)
+  };
+  const mediaMb = (site.mediaAssets ?? []).reduce((total, asset) => total + Number(asset.sizeKb ?? 0), 0) / 1024;
+  const hostingTargets = site.hostingTargets ?? [];
+  const alerts: string[] = [];
+
+  if (mediaMb > policy.mediaLimitMb) {
+    alerts.push(`Medya kotasi asildi: ${mediaMb.toFixed(1)} MB / ${policy.mediaLimitMb} MB`);
+  }
+
+  if (policy.deployStrategy === 'shared-route' && hostingTargets.length > 1) {
+    alerts.push('Shared-route maliyet modunda birden fazla hosting hedefi var');
+  }
+
+  if (policy.deployStrategy === 'dedicated-hosting' && hostingTargets.length === 0) {
+    alerts.push('Dedicated hosting icin en az bir hosting hedefi gerekir');
+  }
+
+  return alerts;
 }
 
 function readString(value: unknown, field: string): string {

@@ -61,9 +61,10 @@ Builder ekrani uc bolumden olusur:
 
 - `Sayfalar` alanindan yeni route eklenir.
 - `Hazir Section Setleri` ile landing, guven/icerik veya lead capture akislari tek tikla eklenir.
+- Hazir setler arasinda `Blog Sayfasi`, `Kafe Sayfasi`, `Restoran Ana Sayfasi`, `Klinik Landing`, `Portfolyo` ve `SaaS` vardir.
 - `Ana Blocklar` ile hero, text, cards, table, image ve CTA eklenir.
 - `Component Kutuphanesi` ile form, gallery, tabs, navbar, charts gibi widgetlar eklenir.
-- Sık kullanilan componentler favoriye alinabilir; son kullanilanlar otomatik kisayol olarak gorunur.
+- Sik kullanilan componentler favoriye alinabilir; son kullanilanlar otomatik kisayol olarak gorunur.
 - `Yapi Sirasi` alaninda blocklar secilir, silinir veya siralanir.
 - Canli preview icindeki bir componente tiklayinca ilgili block otomatik secilir.
 - Hover durumunda component uzerinde `Edit` rozeti gorunur.
@@ -178,6 +179,15 @@ Superadmin dashboard uzerinde herhangi bir site icin `Simule Et` aksiyonunu kull
 - Site admin paneli ve builder secilen site uzerinden acilir.
 - `Simulasyondan Cik` ile tekrar tum platform gorunumune donulur.
 
+## Superadmin Araclari
+
+Dashboard superadmin rolunde ek operasyon panelleri gosterir:
+
+- `Detayli Site Kiyaslama`: Iki siteyi durum, sayfa, block, dil, lead, medya, hazirlik skoru, hosting, maliyet modu ve log sayisina gore karsilastirir.
+- `Kullanici Aktivitesi`: Audit loglardan aktor bazli toplam islem, uyari, risk ve son aktivite bilgisini cikarir.
+- `Maliyet Alarmlari`: Site bazli kota ve maliyet uyarilarini listeler. Bloklayici alarmlar yayin talebi/onayini durdurur.
+- `Islem Gecmisi`: Level, site, aktor ve metin aramasina gore filtrelenebilir. Filtreli liste CSV olarak export edilebilir.
+
 ## Islem Gecmisi
 
 Sistem veri degistiren operasyonlari audit log olarak saklar.
@@ -191,6 +201,16 @@ Loglanan ornek islemler:
 - Superadmin simulasyon baslatma/bitirme
 
 Superadmin dashboard'da son loglari, site admin panelinde ise ilgili siteye ait loglari gorebilir.
+
+## Maliyet/Kota Enforcement
+
+Maliyet politikasi sadece bilgi olarak tutulmaz; bazi kurallar otomatik uygulanir:
+
+- Medya kotasi asilirsa yeni medya ekleme engellenir.
+- Medya kotasi asan site yayina gonderilemez ve admin tarafindan onaylanamaz.
+- `shared-route` modunda ek hosting hedefi acma engellenir.
+- `shared-route` modunda birden fazla hosting hedefi varsa yayin talebi ve backend onay akisi bloklanir.
+- Audit log saklama suresi, function butcesi, aktif hosting sayisi ve summary-first reads ayarlari superadmin icin alarm uretir.
 
 ## Public Site Kontrolu
 

@@ -339,6 +339,16 @@ export interface PublicationChecklistItem {
   details: string;
 }
 
+export interface CostAlert {
+  id: string;
+  siteId: string;
+  siteName: string;
+  severity: 'info' | 'warning' | 'danger';
+  title: string;
+  details: string;
+  blocking: boolean;
+}
+
 export interface SiteVersionSnapshot {
   id: string;
   name: string;

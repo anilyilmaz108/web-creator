@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
 import { UserRole } from '../../core/models/auth.models';
-import { SiteProject } from '../../core/models/builder.models';
+import { AuditLogLevel, CostAlert, SiteProject } from '../../core/models/builder.models';
 import { MockAuthService } from '../../core/services/mock-auth.service';
 import { SiteBuilderStore } from '../../core/services/site-builder.store';
 
@@ -19,6 +19,8 @@ export class DashboardComponent {
   private readonly auth = inject(MockAuthService);
   private readonly router = inject(Router);
   private readonly builderStore = inject(SiteBuilderStore);
+  private readonly filterVersionSignal = signal(0);
+  private readonly comparisonVersionSignal = signal(0);
 
   readonly currentUser = this.auth.currentUser;
   readonly users = this.auth.users;
@@ -101,10 +103,88 @@ export class DashboardComponent {
     }).length;
   });
   readonly roles: UserRole[] = ['visitor', 'moderator', 'admin'];
-  readonly recentLogs = computed(() => {
+  readonly logLevelOptions: Array<AuditLogLevel | 'all'> = ['all', 'info', 'success', 'warning', 'danger'];
+  readonly scopedAuditLogs = computed(() => {
     const simulatedSiteId = this.builderStore.simulatedSiteId();
     const logs = this.auditLogs();
-    return (simulatedSiteId ? logs.filter((log) => log.siteId === simulatedSiteId) : logs).slice(0, 12);
+    return simulatedSiteId ? logs.filter((log) => log.siteId === simulatedSiteId) : logs;
+  });
+  readonly filteredLogs = computed(() => {
+    this.filterVersionSignal();
+    const search = this.logFilter.search.trim().toLowerCase();
+
+    return this.scopedAuditLogs().filter((log) => {
+      const levelMatch = this.logFilter.level === 'all' || log.level === this.logFilter.level;
+      const siteMatch = this.logFilter.siteId === 'all' || log.siteId === this.logFilter.siteId;
+      const actorMatch = this.logFilter.actorId === 'all' || log.actorId === this.logFilter.actorId;
+      const searchMatch =
+        !search ||
+        log.action.toLowerCase().includes(search) ||
+        log.details.toLowerCase().includes(search) ||
+        log.actorName.toLowerCase().includes(search) ||
+        (log.siteName ?? '').toLowerCase().includes(search);
+
+      return levelMatch && siteMatch && actorMatch && searchMatch;
+    });
+  });
+  readonly recentLogs = computed(() => this.filteredLogs().slice(0, 12));
+  readonly costAlerts = computed(() =>
+    this.visibleProjects().flatMap((project) => this.builderStore.costAlerts(project))
+  );
+  readonly blockingCostAlertCount = computed(() => this.costAlerts().filter((alert) => alert.blocking).length);
+  readonly userActivityRows = computed(() => {
+    const grouped = this.scopedAuditLogs().reduce<
+      Record<string, { actorId: string; actorName: string; total: number; warnings: number; danger: number; lastAt: string }>
+    >((acc, log) => {
+      const key = log.actorId || log.actorName || 'unknown';
+      const current = acc[key] ?? {
+        actorId: log.actorId,
+        actorName: log.actorName,
+        total: 0,
+        warnings: 0,
+        danger: 0,
+        lastAt: log.createdAt
+      };
+
+      current.total += 1;
+      current.warnings += log.level === 'warning' ? 1 : 0;
+      current.danger += log.level === 'danger' ? 1 : 0;
+      current.lastAt = new Date(log.createdAt).getTime() > new Date(current.lastAt).getTime() ? log.createdAt : current.lastAt;
+      acc[key] = current;
+      return acc;
+    }, {});
+
+    return Object.values(grouped).sort((a, b) => b.total - a.total).slice(0, 8);
+  });
+  readonly comparisonSites = computed(() => {
+    this.comparisonVersionSignal();
+    const projects = this.visibleProjects();
+    const first = projects.find((project) => project.id === this.comparisonAId) ?? projects[0] ?? null;
+    const second =
+      projects.find((project) => project.id === this.comparisonBId) ??
+      projects.find((project) => project.id !== first?.id) ??
+      null;
+    return { first, second };
+  });
+  readonly comparisonRows = computed(() => {
+    const { first, second } = this.comparisonSites();
+    if (!first || !second) {
+      return [];
+    }
+
+    return [
+      { label: 'Durum', first: first.status, second: second.status },
+      { label: 'Sayfa', first: first.pages.length, second: second.pages.length },
+      { label: 'Block', first: this.blockCount(first), second: this.blockCount(second) },
+      { label: 'Dil', first: first.languages.filter((language) => language.enabled).length, second: second.languages.filter((language) => language.enabled).length },
+      { label: 'Lead', first: first.formSubmissions.length, second: second.formSubmissions.length },
+      { label: 'Medya', first: this.mediaUsage(first), second: this.mediaUsage(second) },
+      { label: 'Hazirlik', first: `${this.checklistScore(first)}%`, second: `${this.checklistScore(second)}%` },
+      { label: 'Hosting', first: first.hostingTargets.length, second: second.hostingTargets.length },
+      { label: 'Maliyet modu', first: first.costPolicy.deployStrategy, second: second.costPolicy.deployStrategy },
+      { label: 'Maliyet alarmi', first: this.builderStore.costAlerts(first).length, second: this.builderStore.costAlerts(second).length },
+      { label: 'Log', first: this.builderStore.logsForSite(first.id).length, second: this.builderStore.logsForSite(second.id).length }
+    ];
   });
   readonly criticalLogCount = computed(
     () => this.auditLogs().filter((log) => log.level === 'warning' || log.level === 'danger').length
@@ -119,6 +199,14 @@ export class DashboardComponent {
     password: '',
     role: 'visitor' as UserRole
   };
+  logFilter = {
+    level: 'all' as AuditLogLevel | 'all',
+    siteId: 'all',
+    actorId: 'all',
+    search: ''
+  };
+  comparisonAId = '';
+  comparisonBId = '';
 
   openBuilder(siteId: string): void {
     this.builderStore.selectSite(siteId);
@@ -218,6 +306,80 @@ export class DashboardComponent {
     return `${mb.toFixed(1)} MB`;
   }
 
+  blockCount(project: SiteProject): number {
+    return project.pages.reduce((total, page) => total + page.blocks.length, 0);
+  }
+
+  clearLogFilters(): void {
+    this.logFilter = {
+      level: 'all',
+      siteId: 'all',
+      actorId: 'all',
+      search: ''
+    };
+    this.filterVersionSignal.update((value) => value + 1);
+  }
+
+  updateLogFilter(field: 'level' | 'siteId' | 'actorId' | 'search', value: string): void {
+    if (field === 'level') {
+      this.logFilter = { ...this.logFilter, level: value as AuditLogLevel | 'all' };
+    } else if (field === 'siteId') {
+      this.logFilter = { ...this.logFilter, siteId: value };
+    } else if (field === 'actorId') {
+      this.logFilter = { ...this.logFilter, actorId: value };
+    } else {
+      this.logFilter = { ...this.logFilter, search: value };
+    }
+    this.filterVersionSignal.update((current) => current + 1);
+  }
+
+  updateComparison(which: 'first' | 'second', siteId: string): void {
+    if (which === 'first') {
+      this.comparisonAId = siteId;
+    } else {
+      this.comparisonBId = siteId;
+    }
+    this.comparisonVersionSignal.update((current) => current + 1);
+  }
+
+  exportFilteredLogs(): void {
+    const rows = this.filteredLogs();
+    const header = ['createdAt', 'level', 'action', 'actorName', 'siteName', 'details'];
+    const csv = [
+      header.join(','),
+      ...rows.map((log) =>
+        [
+          log.createdAt,
+          log.level,
+          log.action,
+          log.actorName,
+          log.siteName ?? 'Platform',
+          log.details
+        ].map((value) => this.csvCell(value)).join(',')
+      )
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `web-creator-logs-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  alertClass(alert: CostAlert): string {
+    if (alert.severity === 'danger') {
+      return 'alert-card--danger';
+    }
+
+    if (alert.severity === 'warning') {
+      return 'alert-card--warning';
+    }
+
+    return 'alert-card--info';
+  }
+
   formatDate(value?: string): string {
     if (!value) {
       return '-';
@@ -231,5 +393,9 @@ export class DashboardComponent {
 
   logScope(siteName?: string): string {
     return siteName ? `Site: ${siteName}` : 'Platform';
+  }
+
+  private csvCell(value: string): string {
+    return `"${value.replace(/"/g, '""')}"`;
   }
 }

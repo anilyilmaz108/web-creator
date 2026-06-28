@@ -8,6 +8,7 @@ Angular + Firebase odakli, WordPress/Drupal benzeri bir site olusturucu MVP'si.
 - Giris yapmadan public site olusturma akisi
 - Sol panelden generic component ekleme
 - Hazir section setleri, favori componentler ve son kullanilan component kisayollari
+- Blog, kafe, restoran, klinik, portfolyo ve SaaS sektor template'leri
 - Sayfa olusturma ve route mantigi
 - Block siralama, silme, tiklayarak secme, undo/redo ve versiyon snapshotlari
 - Tema presetleri, custom temalar, buton/kart/spacing ozellestirmeleri
@@ -20,7 +21,8 @@ Angular + Firebase odakli, WordPress/Drupal benzeri bir site olusturucu MVP'si.
 - Yayin talebi gonderme, admin/superadmin onayi ve yayin durdurma
 - Kullanici ve superadmin dashboardlari
 - Lead, medya, SEO ve maliyet ozetli siteye ozel admin dashboardu
-- Superadmin simulasyon modu ve islem gecmisi
+- Superadmin simulasyon modu, log filtreleme/export, site kiyaslama, maliyet alarmi ve kullanici aktivitesi
+- Medya/hosting maliyet kotalari icin frontend ve backend bloklama
 - Public site gorunumu
 
 ## Demo hesaplar

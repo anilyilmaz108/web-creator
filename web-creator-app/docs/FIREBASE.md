@@ -75,6 +75,14 @@ Callable function'lar:
 
 Tum backend operasyonlari `auditLogs` koleksiyonuna superadmin icin islem gecmisi yazar.
 
+`requestPublication` ve `approvePublication` artik bloklayici maliyet/kota kontrolleri de yapar:
+
+- Medya kullanimi site limitini asarsa islem `failed-precondition` ile durur.
+- `shared-route` modunda birden fazla hosting hedefi varsa islem durur.
+- `dedicated-hosting` modunda hic hosting hedefi yoksa islem durur.
+
+Bu bloklamalar audit log'a `publication.blocked.cost` veya `publication.approval.blocked.cost` olarak yazilir.
+
 Deploy notu: Cloud Functions production deploy icin Firebase projesinin Blaze planinda olmasi gerekir. Blaze acilmadan emulator ve local build calisir, production deploy calismaz.
 
 Firebase CLI deploy sonunda build image cleanup uyarisi verebilir. Redeploy tekrar denendi; uyari devam ederse asagidaki Cloud Console ekranindan eski `gcf` build image'lari manuel temizlenmelidir:
@@ -122,3 +130,4 @@ Bu MVP'de siteye ozel hosting hedefleri uygulama icinde metadata olarak tutulur.
 - `costPolicy.summaryFirstReads`: Dashboardlarda once ozet veri okunmasi.
 
 Bu alanlar Firestore dokumaninda tutulur; ileride Cloud Functions tarafinda kota kontrolu ve otomatik uyarilar icin kullanilabilir.
+Mevcut callable publish/onay akisi temel bloklayici kota kontrollerini backend tarafinda enforce eder.
