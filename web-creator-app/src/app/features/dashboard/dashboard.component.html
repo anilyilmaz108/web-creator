@@ -114,6 +114,7 @@
 
             <div class="project-card__actions">
               <button type="button" (click)="openBuilder(project.id)">Builder</button>
+              <a class="button-muted" [routerLink]="['/demo', project.id]">Demo Izle</a>
               <button type="button" class="button-muted" (click)="openSiteAdmin(project.id)">Site Admin</button>
               <a [routerLink]="['/sites', project.slug]">Public</a>
               @if (currentUser()?.role === 'superadmin') {

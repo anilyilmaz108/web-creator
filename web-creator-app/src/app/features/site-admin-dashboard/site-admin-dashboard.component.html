@@ -11,6 +11,7 @@
           <button type="button" class="muted" (click)="stopSimulation()">Simulasyondan Cik</button>
         }
         <button type="button" (click)="openBuilder(site.id)">Builder</button>
+        <a [routerLink]="['/demo', site.id]">Demo Izle</a>
         <a routerLink="/dashboard">Dashboard</a>
         @if (site.status === 'published') {
           <button type="button" class="danger" (click)="stopPublication(site)">Yayini Durdur</button>
