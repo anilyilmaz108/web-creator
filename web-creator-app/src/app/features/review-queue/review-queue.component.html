@@ -7,23 +7,33 @@
     <a routerLink="/dashboard">Dashboard</a>
   </header>
 
+  <label class="reject-reason">
+    <span>Red sebebi</span>
+    <textarea [(ngModel)]="rejectionReason"></textarea>
+  </label>
+
   <div class="queue-list">
     @for (project of pendingProjects(); track project.id) {
       <article>
         <div>
+          <span class="badge">{{ project.publication.requestStatus }}</span>
           <h2>{{ project.name }}</h2>
-          <p>{{ project.publication.requestedAt }}</p>
+          <p>Talep: {{ project.publication.requestedAt }}</p>
+          <p>Hosting: {{ hostingUrl(project.id) }}</p>
         </div>
         <div class="actions">
           <button type="button" (click)="approve(project.id, 7)">7 Gun</button>
           <button type="button" (click)="approve(project.id, 30)">30 Gun</button>
           <button type="button" (click)="approve(project.id, 90)">90 Gun</button>
+          <button type="button" class="danger" (click)="reject(project.id)">Reddet</button>
         </div>
       </article>
     } @empty {
       <article>
-        <h2>Kuyruk bos</h2>
-        <p>Su anda onay bekleyen yayin talebi bulunmuyor.</p>
+        <div>
+          <h2>Kuyruk bos</h2>
+          <p>Su anda onay bekleyen yayin talebi bulunmuyor.</p>
+        </div>
       </article>
     }
   </div>

@@ -7,11 +7,15 @@ import {
   BlockType,
   CtaBlock,
   FeaturesBlock,
+  HostingProvider,
+  HostingTarget,
   HeroBlock,
   ImageBlock,
+  LanguageConfig,
   LayoutMode,
   PageBlock,
   SitePage,
+  SiteAccessSettings,
   SiteProject,
   TableBlock,
   ThemeConfig,
@@ -62,6 +66,62 @@ export class SiteBuilderStore {
   readonly pendingProjects = computed(() =>
     this.projectsSignal().filter((project) => project.status === 'pending')
   );
+  readonly publishedProjects = computed(() =>
+    this.projectsSignal().filter((project) => project.status === 'published')
+  );
+  readonly hostingTargets = computed(() =>
+    this.projectsSignal().flatMap((project) =>
+      project.hostingTargets.map((target) => ({ ...target, projectId: project.id, projectName: project.name }))
+    )
+  );
+
+  createProject(ownerId: string, name: string): SiteProject {
+    const safeName = name.trim() || 'Yeni Site';
+    const slug = this.uniqueSlug(this.slugify(safeName) || 'site');
+    const theme = themePresets[0];
+    const pageId = `page-${crypto.randomUUID()}`;
+    const now = new Date().toISOString();
+    const project: SiteProject = {
+      id: `site-${crypto.randomUUID()}`,
+      name: safeName,
+      slug,
+      ownerId,
+      status: 'draft',
+      theme,
+      access: this.defaultAccessSettings(),
+      languages: this.defaultLanguages(),
+      hostingTargets: [this.createHostingTarget(slug, 'Production', 'firebase', '', slug, 'draft')],
+      selectedPageId: pageId,
+      publication: { requestStatus: 'none' },
+      pages: [
+        {
+          id: pageId,
+          name: 'Home',
+          slug: 'home',
+          localizedSlugs: { tr: 'anasayfa', en: 'home' },
+          blocks: [
+            {
+              ...this.createBase('hero', 'Hero', 'split'),
+              id: `block-${crypto.randomUUID()}`,
+              eyebrow: 'Yeni site',
+              heading: `${safeName} icin modern bir giris alani`,
+              body: 'Bu alani builder icinden metin, gorsel, renk ve aksiyonlarla ozellestirin.',
+              buttons: [this.createActionButton('Basla', '', 'solid')],
+              primaryAction: 'Basla',
+              secondaryAction: '',
+              imageUrl:
+                'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1200&q=80'
+            } as HeroBlock
+          ]
+        }
+      ]
+    };
+
+    this.projectsSignal.update((projects) => [project, ...projects]);
+    this.selectedSiteIdSignal.set(project.id);
+    this.persist();
+    return this.normalizeProject({ ...project, hostingTargets: project.hostingTargets.map((target) => ({ ...target, createdAt: now })) });
+  }
 
   selectSite(siteId: string): void {
     this.selectedSiteIdSignal.set(siteId);
@@ -78,12 +138,37 @@ export class SiteBuilderStore {
       id: `page-${crypto.randomUUID()}`,
       name,
       slug: this.slugify(name),
+      localizedSlugs: this.defaultLocalizedSlugs(name),
       blocks: []
     };
     this.patchSelectedSite((site) => ({
       ...site,
       pages: [...site.pages, page],
       selectedPageId: page.id
+    }));
+  }
+
+  updatePageMeta(pageId: string, patch: Partial<Pick<SitePage, 'name' | 'slug'>>): void {
+    this.patchSelectedSite((site) => ({
+      ...site,
+      pages: site.pages.map((page) => (page.id === pageId ? { ...page, ...patch } : page))
+    }));
+  }
+
+  updatePageLocalizedSlug(pageId: string, languageCode: string, slug: string): void {
+    this.patchSelectedSite((site) => ({
+      ...site,
+      pages: site.pages.map((page) =>
+        page.id === pageId
+          ? {
+              ...page,
+              localizedSlugs: {
+                ...page.localizedSlugs,
+                [languageCode]: this.slugify(slug) || slug.trim()
+              }
+            }
+          : page
+      )
     }));
   }
 
@@ -227,37 +312,244 @@ export class SiteBuilderStore {
     this.patchSelectedSite((site) => ({ ...site, ...patch }));
   }
 
+  updateSiteAccess(patch: Partial<SiteAccessSettings>): void {
+    this.patchSelectedSite((site) => ({
+      ...site,
+      access: { ...site.access, ...patch }
+    }));
+  }
+
+  addLanguage(language: Pick<LanguageConfig, 'code' | 'label' | 'pathPrefix'>): void {
+    const code = language.code.trim().toLowerCase();
+    if (!code) {
+      return;
+    }
+
+    this.patchSelectedSite((site) => {
+      if (site.languages.some((item) => item.code.toLowerCase() === code)) {
+        return site;
+      }
+
+      const nextLanguage: LanguageConfig = {
+        id: `language-${crypto.randomUUID()}`,
+        code,
+        label: language.label.trim() || code.toUpperCase(),
+        pathPrefix: this.slugify(language.pathPrefix || code) || code,
+        enabled: true,
+        isDefault: site.languages.length === 0
+      };
+
+      return {
+        ...site,
+        languages: [...site.languages, nextLanguage],
+        pages: site.pages.map((page) => ({
+          ...page,
+          localizedSlugs: {
+            ...page.localizedSlugs,
+            [code]: page.slug
+          }
+        }))
+      };
+    });
+  }
+
+  updateLanguage(languageId: string, patch: Partial<Omit<LanguageConfig, 'id'>>): void {
+    this.patchSelectedSite((site) => {
+      const nextLanguages = site.languages.map((language) =>
+        language.id === languageId
+          ? {
+              ...language,
+              ...patch,
+              code: patch.code ? patch.code.trim().toLowerCase() : language.code,
+              pathPrefix: patch.pathPrefix ? this.slugify(patch.pathPrefix) || language.pathPrefix : language.pathPrefix
+            }
+          : language
+      );
+
+      return { ...site, languages: this.ensureDefaultLanguage(nextLanguages) };
+    });
+  }
+
+  setDefaultLanguage(languageId: string): void {
+    this.patchSelectedSite((site) => ({
+      ...site,
+      languages: site.languages.map((language) => ({
+        ...language,
+        enabled: language.id === languageId ? true : language.enabled,
+        isDefault: language.id === languageId
+      }))
+    }));
+  }
+
+  removeLanguage(languageId: string): void {
+    this.patchSelectedSite((site) => {
+      if (site.languages.length <= 1) {
+        return site;
+      }
+
+      const removed = site.languages.find((language) => language.id === languageId);
+      const nextLanguages = this.ensureDefaultLanguage(site.languages.filter((language) => language.id !== languageId));
+
+      return {
+        ...site,
+        languages: nextLanguages,
+        pages: site.pages.map((page) => {
+          if (!removed) {
+            return page;
+          }
+
+          const { [removed.code]: _removedSlug, ...localizedSlugs } = page.localizedSlugs;
+          return { ...page, localizedSlugs };
+        })
+      };
+    });
+  }
+
+  addHostingTarget(name: string, provider: HostingProvider, firebaseProjectId: string, firebaseSiteId: string): void {
+    this.patchSelectedSite((site) => ({
+      ...site,
+      hostingTargets: [
+        ...site.hostingTargets,
+        this.createHostingTarget(site.slug, name || 'Production', provider, firebaseProjectId, firebaseSiteId, 'draft')
+      ]
+    }));
+  }
+
+  updateHostingTarget(hostingTargetId: string, patch: Partial<Omit<HostingTarget, 'id' | 'createdAt'>>): void {
+    this.patchSelectedSite((site) => ({
+      ...site,
+      hostingTargets: site.hostingTargets.map((target) =>
+        target.id === hostingTargetId
+          ? {
+              ...target,
+              ...patch,
+              firebaseSiteId: patch.firebaseSiteId ? this.slugify(patch.firebaseSiteId) || target.firebaseSiteId : target.firebaseSiteId
+            }
+          : target
+      )
+    }));
+  }
+
+  removeHostingTarget(hostingTargetId: string): void {
+    this.patchSelectedSite((site) => {
+      if (site.hostingTargets.length <= 1) {
+        return site;
+      }
+
+      return {
+        ...site,
+        hostingTargets: site.hostingTargets.filter((target) => target.id !== hostingTargetId),
+        publication:
+          site.publication.hostingTargetId === hostingTargetId
+            ? {
+                ...site.publication,
+                hostingTargetId: site.hostingTargets.find((target) => target.id !== hostingTargetId)?.id
+              }
+            : site.publication
+      };
+    });
+  }
+
   setViewport(viewport: ViewportMode): void {
     this.viewportSignal.set(viewport);
   }
 
-  requestPublication(): void {
+  requestPublication(hostingTargetId?: string, requestedBy?: string): void {
     this.patchSelectedSite((site) => ({
       ...site,
       status: 'pending',
-      publication: { ...site.publication, requestedAt: new Date().toISOString() }
+      publication: {
+        ...site.publication,
+        requestStatus: 'pending',
+        requestedAt: new Date().toISOString(),
+        requestedBy,
+        rejectedAt: undefined,
+        rejectionReason: undefined,
+        hostingTargetId: hostingTargetId ?? site.publication.hostingTargetId ?? site.hostingTargets[0]?.id
+      }
     }));
   }
 
-  approvePublication(siteId: string, days: number): void {
+  approvePublication(siteId: string, days: number, approvedBy?: string): void {
     const now = new Date();
     const approvedUntil = new Date(now);
     approvedUntil.setDate(now.getDate() + days);
 
     this.projectsSignal.update((projects) =>
+      projects.map((project) => {
+        if (project.id !== siteId) {
+          return project;
+        }
+
+        const hostingTargetId = project.publication.hostingTargetId ?? project.hostingTargets[0]?.id;
+        const hostingTargets = this.activateHostingTarget(project, hostingTargetId, now.toISOString());
+        const publishedUrl = this.resolvePublishedUrl(hostingTargets.find((target) => target.id === hostingTargetId));
+
+        return {
+          ...project,
+          status: 'published',
+          hostingTargets,
+          publication: {
+            ...project.publication,
+            requestStatus: 'approved',
+            approvedAt: now.toISOString(),
+            approvedBy,
+            approvedUntil: approvedUntil.toISOString(),
+            hostingTargetId,
+            publishedUrl
+          }
+        };
+      })
+    );
+    this.persist();
+  }
+
+  rejectPublication(siteId: string, reason: string, rejectedBy?: string): void {
+    const now = new Date().toISOString();
+    this.projectsSignal.update((projects) =>
       projects.map((project) =>
         project.id === siteId
           ? {
               ...project,
-              status: 'published',
+              status: 'draft',
               publication: {
                 ...project.publication,
-                approvedAt: now.toISOString(),
-                approvedUntil: approvedUntil.toISOString()
+                requestStatus: 'rejected',
+                rejectedAt: now,
+                rejectedBy,
+                rejectionReason: reason || 'Yayin talebi reddedildi.'
               }
             }
           : project
       )
+    );
+    this.persist();
+  }
+
+  publishToActiveHosting(siteId: string): void {
+    const now = new Date().toISOString();
+    this.projectsSignal.update((projects) =>
+      projects.map((project) => {
+        if (project.id !== siteId) {
+          return project;
+        }
+
+        const activeTarget = project.hostingTargets.find((target) => target.status === 'active') ?? project.hostingTargets[0];
+        const hostingTargets = this.activateHostingTarget(project, activeTarget?.id, now);
+
+        return {
+          ...project,
+          status: 'published',
+          hostingTargets,
+          publication: {
+            ...project.publication,
+            requestStatus: 'approved',
+            approvedAt: project.publication.approvedAt ?? now,
+            hostingTargetId: activeTarget?.id,
+            publishedUrl: this.resolvePublishedUrl(activeTarget)
+          }
+        };
+      })
     );
     this.persist();
   }
@@ -618,12 +910,30 @@ export class SiteBuilderStore {
 
   private normalizeProject(project: SiteProject): SiteProject {
     const theme = this.normalizeTheme(project.theme);
+    const languages = this.ensureDefaultLanguage(
+      (project.languages?.length ? project.languages : this.defaultLanguages()).map((language) =>
+        this.normalizeLanguage(language)
+      )
+    );
+    const access = this.normalizeAccess(project.access);
+    const hostingTargets = (project.hostingTargets?.length
+      ? project.hostingTargets
+      : [this.createHostingTarget(project.slug, 'Production', 'firebase', '', project.slug, 'draft')]
+    ).map((target) => this.normalizeHostingTarget(target, project.slug));
 
     return {
       ...project,
       theme,
+      access,
+      languages,
+      hostingTargets,
+      publication: {
+        ...(project.publication ?? {}),
+        requestStatus: project.publication?.requestStatus ?? 'none'
+      },
       pages: project.pages.map((page) => ({
         ...page,
+        localizedSlugs: this.normalizeLocalizedSlugs(page, languages),
         blocks: page.blocks.map((block) => this.normalizeBlock(block, theme))
       }))
     };
@@ -634,6 +944,151 @@ export class SiteBuilderStore {
       ...themePresets[0],
       ...theme
     };
+  }
+
+  private defaultAccessSettings(): SiteAccessSettings {
+    return {
+      mode: 'public',
+      allowSelfRegistration: true,
+      loginTitle: 'Uye alani',
+      gatedMessage: 'Bu siteye devam etmek icin lutfen giris yapin.'
+    };
+  }
+
+  private normalizeAccess(access?: SiteAccessSettings): SiteAccessSettings {
+    return {
+      ...this.defaultAccessSettings(),
+      ...access
+    };
+  }
+
+  private defaultLanguages(): LanguageConfig[] {
+    return [
+      {
+        id: `language-${crypto.randomUUID()}`,
+        code: 'tr',
+        label: 'Turkce',
+        pathPrefix: 'tr',
+        enabled: true,
+        isDefault: true
+      },
+      {
+        id: `language-${crypto.randomUUID()}`,
+        code: 'en',
+        label: 'English',
+        pathPrefix: 'en',
+        enabled: true,
+        isDefault: false
+      }
+    ];
+  }
+
+  private normalizeLanguage(language: LanguageConfig): LanguageConfig {
+    const code = language.code?.trim().toLowerCase() || 'tr';
+
+    return {
+      id: language.id || `language-${crypto.randomUUID()}`,
+      code,
+      label: language.label?.trim() || code.toUpperCase(),
+      pathPrefix: this.slugify(language.pathPrefix || code) || code,
+      enabled: language.enabled ?? true,
+      isDefault: language.isDefault ?? false
+    };
+  }
+
+  private ensureDefaultLanguage(languages: LanguageConfig[]): LanguageConfig[] {
+    if (!languages.length) {
+      return this.defaultLanguages();
+    }
+
+    const defaultIndex = languages.findIndex((language) => language.isDefault);
+    const fallbackIndex = defaultIndex >= 0 ? defaultIndex : 0;
+
+    return languages.map((language, index) => ({
+      ...language,
+      enabled: index === fallbackIndex ? true : language.enabled,
+      isDefault: index === fallbackIndex
+    }));
+  }
+
+  private defaultLocalizedSlugs(name: string): Record<string, string> {
+    const slug = this.slugify(name) || 'page';
+    const languages = this.selectedSite()?.languages ?? this.defaultLanguages();
+
+    return languages.reduce<Record<string, string>>((acc, language) => {
+      acc[language.code] = slug;
+      return acc;
+    }, {});
+  }
+
+  private normalizeLocalizedSlugs(page: SitePage, languages: LanguageConfig[]): Record<string, string> {
+    return languages.reduce<Record<string, string>>((acc, language) => {
+      acc[language.code] = page.localizedSlugs?.[language.code] || page.slug;
+      return acc;
+    }, {});
+  }
+
+  private createHostingTarget(
+    siteSlug: string,
+    name: string,
+    provider: HostingProvider,
+    firebaseProjectId: string,
+    firebaseSiteId: string,
+    status: HostingTarget['status']
+  ): HostingTarget {
+    const safeSiteId = this.slugify(firebaseSiteId || siteSlug) || siteSlug;
+
+    return {
+      id: `hosting-${crypto.randomUUID()}`,
+      name: name.trim() || 'Production',
+      provider,
+      firebaseProjectId: firebaseProjectId.trim(),
+      firebaseSiteId: safeSiteId,
+      defaultUrl: provider === 'firebase' ? `https://${safeSiteId}.web.app` : '',
+      customDomain: '',
+      status,
+      createdAt: new Date().toISOString()
+    };
+  }
+
+  private normalizeHostingTarget(target: HostingTarget, siteSlug: string): HostingTarget {
+    const firebaseSiteId = this.slugify(target.firebaseSiteId || siteSlug) || siteSlug;
+
+    return {
+      id: target.id || `hosting-${crypto.randomUUID()}`,
+      name: target.name || 'Production',
+      provider: target.provider || 'firebase',
+      firebaseProjectId: target.firebaseProjectId || '',
+      firebaseSiteId,
+      defaultUrl: target.defaultUrl || `https://${firebaseSiteId}.web.app`,
+      customDomain: target.customDomain || '',
+      status: target.status || 'draft',
+      createdAt: target.createdAt || new Date().toISOString(),
+      lastPublishedAt: target.lastPublishedAt
+    };
+  }
+
+  private activateHostingTarget(project: SiteProject, hostingTargetId: string | undefined, publishedAt: string): HostingTarget[] {
+    const targetId = hostingTargetId ?? project.hostingTargets[0]?.id;
+
+    return project.hostingTargets.map((target) =>
+      target.id === targetId
+        ? {
+            ...target,
+            status: 'active',
+            lastPublishedAt: publishedAt,
+            defaultUrl: target.defaultUrl || `https://${target.firebaseSiteId || project.slug}.web.app`
+          }
+        : target
+    );
+  }
+
+  private resolvePublishedUrl(target: HostingTarget | undefined): string {
+    if (!target) {
+      return '';
+    }
+
+    return target.customDomain || target.defaultUrl || `https://${target.firebaseSiteId}.web.app`;
   }
 
   private normalizeBlock(block: PageBlock, theme: ThemeConfig): PageBlock {
@@ -785,6 +1240,19 @@ export class SiteBuilderStore {
 
   private persistCustomThemes(): void {
     globalThis.localStorage?.setItem(CUSTOM_THEMES_KEY, JSON.stringify(this.customThemesSignal()));
+  }
+
+  private uniqueSlug(baseSlug: string): string {
+    const existingSlugs = new Set(this.projectsSignal().map((project) => project.slug));
+    let slug = baseSlug;
+    let index = 2;
+
+    while (existingSlugs.has(slug)) {
+      slug = `${baseSlug}-${index}`;
+      index += 1;
+    }
+
+    return slug;
   }
 
   private slugify(value: string): string {

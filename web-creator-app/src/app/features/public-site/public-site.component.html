@@ -1,8 +1,25 @@
-@if (site && isAvailable) {
+@if (site && canView) {
   <section class="public-site">
+    <nav class="language-bar">
+      @for (language of site.languages; track language.id) {
+        @if (language.enabled) {
+          <a [href]="'/' + language.pathPrefix + '/' + site.slug">{{ language.label }}</a>
+        }
+      }
+    </nav>
     @for (page of site.pages; track page.id) {
       <app-site-renderer [page]="page" [theme]="site.theme" />
     }
+  </section>
+} @else if (site && isAvailable) {
+  <section class="unavailable">
+    <div>
+      <p>{{ site.access.gatedMessage }}</p>
+      <h1>{{ site.access.loginTitle }}</h1>
+      <a routerLink="/login">
+        {{ site.access.mode === 'signup' && site.access.allowSelfRegistration ? 'Kayit Ol / Giris Yap' : 'Giris Yap' }}
+      </a>
+    </div>
   </section>
 } @else {
   <section class="unavailable">

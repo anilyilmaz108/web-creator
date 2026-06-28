@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 
+import { MockAuthService } from '../../core/services/mock-auth.service';
 import { SiteBuilderStore } from '../../core/services/site-builder.store';
 import { SiteRendererComponent } from '../../shared/components/site-renderer/site-renderer.component';
 
@@ -15,8 +16,10 @@ import { SiteRendererComponent } from '../../shared/components/site-renderer/sit
 export class PublicSiteComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly store = inject(SiteBuilderStore);
+  private readonly auth = inject(MockAuthService);
 
   readonly site = this.store.findBySlug(this.route.snapshot.paramMap.get('slug') ?? '');
+  readonly currentUser = this.auth.currentUser;
 
   get isAvailable(): boolean {
     if (!this.site || this.site.status !== 'published') {
@@ -28,5 +31,13 @@ export class PublicSiteComponent {
     }
 
     return new Date(this.site.publication.approvedUntil).getTime() > Date.now();
+  }
+
+  get canView(): boolean {
+    if (!this.site || !this.isAvailable) {
+      return false;
+    }
+
+    return this.site.access.mode === 'public' || !!this.currentUser();
   }
 }

@@ -10,6 +10,10 @@ export type LinkTarget = '_self' | '_blank';
 export type ActionButtonStyle = 'solid' | 'outline' | 'ghost';
 export type MenuOpenMode = 'click' | 'hover';
 export type BlockType = 'hero' | 'text' | 'features' | 'table' | 'image' | 'cta' | 'widget';
+export type SiteAccessMode = 'public' | 'login' | 'signup';
+export type PublicationRequestStatus = 'none' | 'pending' | 'approved' | 'rejected';
+export type HostingProvider = 'firebase' | 'external';
+export type HostingStatus = 'draft' | 'provisioning' | 'active' | 'paused' | 'expired';
 
 export type WidgetKind =
   | 'accordion'
@@ -212,13 +216,51 @@ export interface SitePage {
   id: string;
   name: string;
   slug: string;
+  localizedSlugs: Record<string, string>;
   blocks: PageBlock[];
 }
 
+export interface LanguageConfig {
+  id: string;
+  code: string;
+  label: string;
+  pathPrefix: string;
+  enabled: boolean;
+  isDefault: boolean;
+}
+
+export interface SiteAccessSettings {
+  mode: SiteAccessMode;
+  allowSelfRegistration: boolean;
+  loginTitle: string;
+  gatedMessage: string;
+}
+
+export interface HostingTarget {
+  id: string;
+  name: string;
+  provider: HostingProvider;
+  firebaseProjectId: string;
+  firebaseSiteId: string;
+  defaultUrl: string;
+  customDomain: string;
+  status: HostingStatus;
+  createdAt: string;
+  lastPublishedAt?: string;
+}
+
 export interface PublicationSettings {
+  requestStatus: PublicationRequestStatus;
   requestedAt?: string;
+  requestedBy?: string;
   approvedAt?: string;
+  approvedBy?: string;
   approvedUntil?: string;
+  rejectedAt?: string;
+  rejectedBy?: string;
+  rejectionReason?: string;
+  hostingTargetId?: string;
+  publishedUrl?: string;
 }
 
 export interface SiteProject {
@@ -228,6 +270,9 @@ export interface SiteProject {
   ownerId: string;
   status: SiteStatus;
   theme: ThemeConfig;
+  access: SiteAccessSettings;
+  languages: LanguageConfig[];
+  hostingTargets: HostingTarget[];
   pages: SitePage[];
   selectedPageId: string;
   publication: PublicationSettings;

@@ -8,9 +8,12 @@ import {
   ActionButtonStyle,
   AnimationPreset,
   FontStylePreset,
+  HostingProvider,
   HoverEffectPreset,
   LayoutMode,
   PageBlock,
+  SiteAccessMode,
+  SiteAccessSettings,
   TextAlignPreset,
   ThemeConfig,
   ViewportMode,
@@ -66,6 +69,12 @@ export class BuilderComponent {
   readonly fontStyleOptions: FontStylePreset[] = ['normal', 'bold', 'italic', 'bold-italic'];
   readonly textAlignOptions: TextAlignPreset[] = ['left', 'center', 'right'];
   readonly buttonStyleOptions: ActionButtonStyle[] = ['solid', 'outline', 'ghost'];
+  readonly accessModeOptions: Array<{ value: SiteAccessMode; label: string }> = [
+    { value: 'public', label: 'Herkese acik' },
+    { value: 'login', label: 'Sadece giris' },
+    { value: 'signup', label: 'Kayit ve giris' }
+  ];
+  readonly hostingProviderOptions: HostingProvider[] = ['firebase', 'external'];
   readonly formFieldOptions = [
     'text',
     'email',
@@ -99,6 +108,17 @@ export class BuilderComponent {
   };
 
   newPageName = '';
+  newLanguage = {
+    code: '',
+    label: '',
+    pathPrefix: ''
+  };
+  newHosting = {
+    name: 'Production',
+    provider: 'firebase' as HostingProvider,
+    firebaseProjectId: '',
+    firebaseSiteId: ''
+  };
   customThemeName = '';
   catalogSearch = '';
   activeCatalogCategory = 'All';
@@ -230,12 +250,81 @@ export class BuilderComponent {
     this.newPageName = '';
   }
 
+  updatePageSlug(pageId: string, value: string): void {
+    this.store.updatePageMeta(pageId, { slug: value });
+  }
+
+  updatePageLocalizedSlug(pageId: string, languageCode: string, value: string): void {
+    this.store.updatePageLocalizedSlug(pageId, languageCode, value);
+  }
+
   removePage(pageId: string): void {
     this.store.removePage(pageId);
   }
 
   requestPublication(): void {
-    this.store.requestPublication();
+    this.store.requestPublication(undefined, this.currentUser()?.id);
+  }
+
+  updateSiteAccess<K extends keyof SiteAccessSettings>(field: K, value: SiteAccessSettings[K]): void {
+    this.store.updateSiteAccess({ [field]: value } as Partial<SiteAccessSettings>);
+  }
+
+  addLanguage(): void {
+    const code = this.newLanguage.code.trim();
+    if (!code) {
+      return;
+    }
+
+    this.store.addLanguage(this.newLanguage);
+    this.newLanguage = { code: '', label: '', pathPrefix: '' };
+  }
+
+  updateLanguage(languageId: string, field: 'code' | 'label' | 'pathPrefix', value: string): void {
+    this.store.updateLanguage(languageId, { [field]: value });
+  }
+
+  toggleLanguage(languageId: string, enabled: boolean): void {
+    this.store.updateLanguage(languageId, { enabled });
+  }
+
+  setDefaultLanguage(languageId: string): void {
+    this.store.setDefaultLanguage(languageId);
+  }
+
+  removeLanguage(languageId: string): void {
+    this.store.removeLanguage(languageId);
+  }
+
+  addHostingTarget(): void {
+    this.store.addHostingTarget(
+      this.newHosting.name,
+      this.newHosting.provider,
+      this.newHosting.firebaseProjectId,
+      this.newHosting.firebaseSiteId || this.selectedSite()?.slug || ''
+    );
+    this.newHosting = {
+      name: 'Production',
+      provider: 'firebase',
+      firebaseProjectId: '',
+      firebaseSiteId: ''
+    };
+  }
+
+  updateHostingTarget(
+    hostingTargetId: string,
+    field: 'name' | 'provider' | 'firebaseProjectId' | 'firebaseSiteId' | 'customDomain',
+    value: string
+  ): void {
+    this.store.updateHostingTarget(hostingTargetId, { [field]: value });
+  }
+
+  removeHostingTarget(hostingTargetId: string): void {
+    this.store.removeHostingTarget(hostingTargetId);
+  }
+
+  hostingUrl(defaultUrl: string, customDomain: string): string {
+    return customDomain || defaultUrl || 'Yayin URL bekliyor';
   }
 
   selectCatalogCategory(category: string): void {

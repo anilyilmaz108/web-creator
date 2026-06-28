@@ -95,12 +95,53 @@ export const demoProjects: SiteProject[] = [
     status: 'draft',
     theme: themePresets[0],
     selectedPageId: 'page-home',
-    publication: {},
+    access: {
+      mode: 'public',
+      allowSelfRegistration: true,
+      loginTitle: 'Northwind Studio uyelik alani',
+      gatedMessage: 'Bu siteye devam etmek icin lutfen giris yapin.'
+    },
+    languages: [
+      {
+        id: 'language-tr',
+        code: 'tr',
+        label: 'Turkce',
+        pathPrefix: 'tr',
+        enabled: true,
+        isDefault: true
+      },
+      {
+        id: 'language-en',
+        code: 'en',
+        label: 'English',
+        pathPrefix: 'en',
+        enabled: true,
+        isDefault: false
+      }
+    ],
+    hostingTargets: [
+      {
+        id: 'hosting-northwind-production',
+        name: 'Production',
+        provider: 'firebase',
+        firebaseProjectId: 'webcreator-demo',
+        firebaseSiteId: 'northwind-studio',
+        defaultUrl: 'https://northwind-studio.web.app',
+        customDomain: '',
+        status: 'draft',
+        createdAt: '2026-06-01T09:00:00.000Z'
+      }
+    ],
+    publication: { requestStatus: 'none' },
     pages: [
       {
         id: 'page-home',
         name: 'Home',
         slug: 'home',
+        localizedSlugs: {
+          tr: 'anasayfa',
+          en: 'home'
+        },
         blocks: [
           {
             id: 'block-hero',
@@ -304,6 +345,10 @@ export const demoProjects: SiteProject[] = [
         id: 'page-services',
         name: 'Services',
         slug: 'services',
+        localizedSlugs: {
+          tr: 'hizmetler',
+          en: 'services'
+        },
         blocks: [
           {
             id: 'block-text-services',
