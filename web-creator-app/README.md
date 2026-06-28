@@ -39,10 +39,19 @@ Uygulama varsayilan olarak `http://localhost:4200` adresinde calisir.
 
 - [Kullanim Dokumani](docs/USAGE.md)
 - [Business Dokumani](docs/BUSINESS.md)
+- [Firebase Kurulumu](docs/FIREBASE.md)
 
 ## Onerilen production stack
 
-MVP icin en dusuk operasyon maliyetli yol Firebase ile devam etmektir. Bu surumde veri kaynagi olarak `localStorage` kullanan servisler bulunuyor; `environment.firebaseEnabled` true yapilip Firebase config dolduruldugunda proje ve audit log verileri Firestore'a da yazilir.
+MVP icin en dusuk operasyon maliyetli yol Firebase ile devam etmektir. Bu repo `web-creator-anilyilmaz` Firebase projesine baglandi. Veri kaynagi olarak `localStorage` kullanan servisler bulunuyor; Firebase config hazir, fakat guvenli Auth/role modeli tamamlanana kadar `environment.firebaseEnabled` varsayilan olarak kapali tutuldu.
+
+Firebase komutlari:
+
+```bash
+npm run firebase:deploy:hosting
+npm run firebase:deploy:firestore
+npm run firebase:deploy
+```
 
 Sonraki iterasyonda:
 

@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "web-creator-anilyilmaz"
+  },
+  "targets": {
+    "web-creator-anilyilmaz": {
+      "hosting": {
+        "app": [
+          "web-creator-anilyilmaz"
+        ]
+      }
+    }
+  }
+}

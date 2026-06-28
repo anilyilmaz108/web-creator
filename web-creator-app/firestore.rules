@@ -1,0 +1,65 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function hasPlatformRole(roles) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/platformUsers/$(request.auth.uid))
+        && get(/databases/$(database)/documents/platformUsers/$(request.auth.uid)).data.role in roles;
+    }
+
+    function hasSiteRole(siteId, roles) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/siteMembers/$(siteId)/members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/siteMembers/$(siteId)/members/$(request.auth.uid)).data.role in roles;
+    }
+
+    function isAdmin() {
+      return hasPlatformRole(['admin', 'superadmin']);
+    }
+
+    function isSuperAdmin() {
+      return hasPlatformRole(['superadmin']);
+    }
+
+    function canManageSite(siteId) {
+      return isAdmin() || hasSiteRole(siteId, ['owner', 'admin']);
+    }
+
+    match /sites/{siteId} {
+      allow read: if resource.data.status == 'published' || canManageSite(siteId);
+      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid;
+      allow update, delete: if canManageSite(siteId);
+    }
+
+    match /publicationRequests/{requestId} {
+      allow read: if isAdmin() || hasSiteRole(resource.data.siteId, ['owner', 'admin']);
+      allow create: if signedIn() && request.resource.data.requestedByUid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /auditLogs/{logId} {
+      allow read: if isSuperAdmin();
+      allow create: if signedIn();
+      allow update, delete: if false;
+    }
+
+    match /platformUsers/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isSuperAdmin());
+      allow write: if isSuperAdmin();
+    }
+
+    match /siteMembers/{siteId}/members/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || canManageSite(siteId));
+      allow write: if canManageSite(siteId);
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
