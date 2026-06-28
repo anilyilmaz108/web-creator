@@ -7,6 +7,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
+    "firebase:bootstrap": "node scripts/firebase-bootstrap.mjs",
     "firebase:deploy:hosting": "npm run build && firebase deploy --only hosting:app --project web-creator-anilyilmaz",
     "firebase:deploy:firestore": "firebase deploy --only firestore --project web-creator-anilyilmaz",
     "firebase:deploy": "npm run build && firebase deploy --project web-creator-anilyilmaz"

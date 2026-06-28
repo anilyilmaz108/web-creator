@@ -5,7 +5,6 @@ Bu proje icin Firebase projesi olusturuldu:
 - Project ID: `web-creator-anilyilmaz`
 - Display name: `Web Creator`
 - Web app: `web-creator-web`
-- Web app ID: `1:310189531670:web:e9ab1f38a3b739cdaccb37`
 - Default Hosting site: `web-creator-anilyilmaz`
 - Hosting URL: `https://web-creator-anilyilmaz.web.app`
 - Firestore location: `europe-west3`
@@ -17,29 +16,58 @@ Bu proje icin Firebase projesi olusturuldu:
 - `firebase.json`: Angular build cikti klasoru, SPA rewrite, cache headerlari ve Firestore dosyalari
 - `firestore.rules`: Firebase Auth/role tabanli guvenli baseline
 - `firestore.indexes.json`: Su an ek composite index gerekmiyor
-- `src/environments/environment.ts`: Web SDK config
+- `src/environments/environment.ts`: Gercek Firebase anahtari icermez
+- `public/firebase-config.example.js`: Paylasilabilir ornek runtime config
+- `public/firebase-config.js`: Gercek runtime config, `.gitignore` icinde tutulur
 
 ## Komutlar
 
 ```bash
+npm run firebase:bootstrap
 npm run firebase:deploy:hosting
 npm run firebase:deploy:firestore
 npm run firebase:deploy
 ```
 
+## Runtime Config
+
+Firebase web config degerleri frontend tarafinda gizli kabul edilmez; tarayiciya giden her web app config kullanici tarafindan gorulebilir. Bu repo yine de gercek config degerlerini kaynak koddan uzak tutar:
+
+1. `environment.ts` icinde gercek Firebase bilgisi yoktur.
+2. Local calisma icin `public/firebase-config.js` kullanilir.
+3. Bu dosya `.gitignore` icindedir.
+4. Yeni ortamda `public/firebase-config.example.js` kopyalanip doldurulur.
+
+Gercekten gizli kalmasi gereken islemler Cloud Functions, NextJS API veya baska bir guvenli backend uzerinde Firebase Admin SDK ile calismalidir.
+
+## Auth Bootstrap
+
+Firebase Authentication icin Console'da bir kez ilk kurulum gerekir:
+
+1. Firebase Console > `Authentication` > `Get started`.
+2. `Sign-in method` ekraninda `Email/Password` providerini acin.
+3. Public site olusturma icin `Anonymous` providerini acin.
+4. Ardindan asagidaki komutu calistirin:
+
+```bash
+npm run firebase:bootstrap
+```
+
+Bu komut demo hesaplarini Firebase Auth'a ekler ve Firestore'da `platformUsers/{uid}` rol dokumanlarini olusturur.
+
 ## Onemli Guvenlik Notu
 
-MVP uygulamasinda rol/session akisi su anda frontend mock auth ve `localStorage` ile calisiyor. Bu yuzden `environment.firebaseEnabled` varsayilan olarak `false`.
+Auth servisi Firebase etkinse Firebase Authentication ile calisir; Firebase kapaliysa lokal demo akisina geri dusebilir. Production'da lokal fallback kapali tutulmali ve admin islemleri Firebase Auth uid'leriyle yurutulmelidir.
 
 Firestore kurallari gercek Firebase Authentication uid ve rol dokumanlari bekler:
 
 - `platformUsers/{uid}`: platform rolleri (`admin`, `superadmin`)
 - `siteMembers/{siteId}/members/{uid}`: site rolleri (`owner`, `admin`)
-- `sites/{siteId}`: site dokumani, create icin `ownerUid`
+- `sites/{siteId}`: site dokumani, create icin `ownerUid` ve `ownerId`
 - `auditLogs/{logId}`: islem gecmisi
 - `publicationRequests/{requestId}`: yayin talepleri
 
-Production'a gecmeden once Firebase Authentication, uid tabanli owner/member modeli ve admin operasyonlari icin Cloud Functions veya guvenli bir backend eklenmelidir.
+Kullanici olusturma su anda Firebase client SDK ile secondary app uzerinden yapilir ve rol dokumani Firestore kurallariyla korunur. Daha sert production modeli icin kullanici olusturma, rol atama, deploy ve hosting provision islemleri Cloud Functions veya NextJS API tarafina alinmalidir.
 
 ## Coklu Hosting
 

@@ -174,10 +174,12 @@ Mevcut MVP verileri `localStorage` uzerinden saklar:
 Firebase kullanimi:
 
 1. Firebase projesi: `web-creator-anilyilmaz`.
-2. Web SDK config `src/environments/environment.ts` icinde hazir.
-3. Hosting config `.firebaserc` ve `firebase.json` icinde tanimli.
-4. Firestore database `europe-west3` lokasyonunda olusturuldu.
-5. Uygulama localStorage yazmaya devam eder. Firebase sync icin gercek Firebase Authentication ve uid tabanli rol modeli tamamlandiktan sonra `firebaseEnabled: true` yapilmalidir.
+2. Web SDK config `environment.ts` icinde tutulmaz.
+3. Local runtime config `public/firebase-config.js` icindedir ve git'e eklenmez.
+4. Ornek dosya: `public/firebase-config.example.js`.
+5. Hosting config `.firebaserc` ve `firebase.json` icinde tanimli.
+6. Firestore database `europe-west3` lokasyonunda olusturuldu.
+7. Authentication Console'da Email/Password ve Anonymous providerlari acildiktan sonra `npm run firebase:bootstrap` calistirilir.
 
 Production icin onerilen yol:
 

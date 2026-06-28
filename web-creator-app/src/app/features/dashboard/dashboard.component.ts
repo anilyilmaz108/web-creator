@@ -152,18 +152,18 @@ export class DashboardComponent {
     this.router.navigateByUrl('/login');
   }
 
-  createUser(): void {
+  async createUser(): Promise<void> {
     if (!this.newUser.name || !this.newUser.email || !this.newUser.password) {
       return;
     }
 
-    this.auth.createUser(this.newUser);
+    await this.auth.createUser(this.newUser);
     this.builderStore.recordAuditLog('user.created', 'success', `${this.newUser.email} kullanicisi olusturuldu.`);
     this.newUser = { name: '', email: '', password: '', role: 'visitor' };
   }
 
-  updateRole(userId: string, role: UserRole): void {
-    this.auth.updateUserRole(userId, role);
+  async updateRole(userId: string, role: UserRole): Promise<void> {
+    await this.auth.updateUserRole(userId, role);
     this.builderStore.recordAuditLog('user.role.updated', 'warning', `${this.ownerName(userId)} rolu ${role} olarak guncellendi.`);
   }
 

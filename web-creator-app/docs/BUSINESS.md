@@ -42,7 +42,7 @@ Bu repo icindeki MVP su alanlari kapsar:
 
 ## Production Yol Haritasi
 
-### Faz 1: Backendless MVP
+### Faz 1: Firebase Backend MVP
 
 Onerilen en dusuk operasyon maliyetli baslangic Firebase'dir. Mevcut projede Angular + Firebase paketleri zaten var.
 
@@ -55,7 +55,7 @@ Kapsam:
 - Cloud Functions ile yayin onayi, deploy tetikleme ve sure bitimi kontrolu
 - Firestore audit log koleksiyonu
 
-Bu fazda NextJS backend ve Docker sart degildir. Sunucu bakimi olmadan ilerlenebilir.
+Bu fazda NextJS backend ve Docker sart degildir. Sunucu bakimi olmadan ilerlenebilir. Gercekten gizli kalmasi gereken admin islemleri Cloud Functions veya NextJS API tarafina alinabilir.
 
 ### Faz 2: Operasyon ve Faturalama
 

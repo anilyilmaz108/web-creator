@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
@@ -20,14 +20,17 @@ export class PublicCreateComponent {
 
   creatorName = '';
   siteName = '';
+  readonly isCreating = signal(false);
 
-  createSite(): void {
+  async createSite(): Promise<void> {
     if (!this.siteName.trim()) {
       return;
     }
 
-    const user = this.auth.startGuestCreatorSession(this.creatorName.trim() || 'Public Creator');
+    this.isCreating.set(true);
+    const user = await this.auth.startGuestCreatorSession(this.creatorName.trim() || 'Public Creator');
     const project = this.store.createProject(user.id, this.siteName.trim());
+    this.isCreating.set(false);
     this.router.navigate(['/builder', project.id]);
   }
 }

@@ -27,12 +27,34 @@ service cloud.firestore {
     }
 
     function canManageSite(siteId) {
-      return isAdmin() || hasSiteRole(siteId, ['owner', 'admin']);
+      return isAdmin()
+        || hasSiteRole(siteId, ['owner', 'admin'])
+        || (signedIn()
+          && exists(/databases/$(database)/documents/sites/$(siteId))
+          && get(/databases/$(database)/documents/sites/$(siteId)).data.ownerUid == request.auth.uid);
+    }
+
+    function createsOwnSite() {
+      return signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerId == request.auth.uid;
+    }
+
+    function keepsOwnRole(uid) {
+      return signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.role == resource.data.role;
+    }
+
+    function createsVisitorProfile(uid) {
+      return signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.role == 'visitor';
     }
 
     match /sites/{siteId} {
       allow read: if resource.data.status == 'published' || canManageSite(siteId);
-      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid;
+      allow create: if createsOwnSite() || isAdmin();
       allow update, delete: if canManageSite(siteId);
     }
 
@@ -49,8 +71,13 @@ service cloud.firestore {
     }
 
     match /platformUsers/{uid} {
-      allow read: if signedIn() && (request.auth.uid == uid || isSuperAdmin());
-      allow write: if isSuperAdmin();
+      allow get: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow list: if isAdmin();
+      allow create: if createsVisitorProfile(uid) || isAdmin();
+      allow update: if keepsOwnRole(uid) || isSuperAdmin() || (isAdmin()
+        && resource.data.role != 'superadmin'
+        && request.resource.data.role != 'superadmin');
+      allow delete: if isSuperAdmin();
     }
 
     match /siteMembers/{siteId}/members/{uid} {

@@ -43,20 +43,28 @@ Uygulama varsayilan olarak `http://localhost:4200` adresinde calisir.
 
 ## Onerilen production stack
 
-MVP icin en dusuk operasyon maliyetli yol Firebase ile devam etmektir. Bu repo `web-creator-anilyilmaz` Firebase projesine baglandi. Veri kaynagi olarak `localStorage` kullanan servisler bulunuyor; Firebase config hazir, fakat guvenli Auth/role modeli tamamlanana kadar `environment.firebaseEnabled` varsayilan olarak kapali tutuldu.
+MVP icin en dusuk operasyon maliyetli yol Firebase ile devam etmektir. Bu repo `web-creator-anilyilmaz` Firebase projesine baglandi. Firebase config kaynak kodda tutulmaz; local runtime config `.gitignore` icindeki `public/firebase-config.js` dosyasindan okunur.
 
 Firebase komutlari:
 
 ```bash
+npm run firebase:bootstrap
 npm run firebase:deploy:hosting
 npm run firebase:deploy:firestore
 npm run firebase:deploy
 ```
 
+Mevcut Firebase entegrasyonu:
+
+1. Auth icin Firebase Authentication destekli servis
+2. Site, sayfa, block, kullanici ve audit log verileri icin Firestore sync
+3. Firestore security rules ile uid/role bazli yetkilendirme
+4. Firebase Hosting config ve multi-site hedefine hazir yapi
+
 Sonraki iterasyonda:
 
-1. Auth icin Firebase Authentication
-2. Site, sayfa, block ve kullanici verileri icin Firestore
+1. Firebase Console'da Authentication providerlarini acma
+2. `npm run firebase:bootstrap` ile ilk superadmin/admin hesaplarini seed etme
 3. Gorsel yukleme icin Firebase Storage
 4. Firebase Hosting deploy tetigi ve sure sonu kontrolleri icin Cloud Functions
 

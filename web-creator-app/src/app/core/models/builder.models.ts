@@ -284,6 +284,7 @@ export interface SiteProject {
   name: string;
   slug: string;
   ownerId: string;
+  ownerUid?: string;
   status: SiteStatus;
   theme: ThemeConfig;
   access: SiteAccessSettings;

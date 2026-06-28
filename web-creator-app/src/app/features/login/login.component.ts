@@ -19,6 +19,7 @@ export class LoginComponent {
   email = 'admin@webcreator.dev';
   password = 'Admin123!';
   readonly errorMessage = signal('');
+  readonly isSubmitting = signal(false);
 
   readonly demoAccounts = [
     { role: 'Superadmin', email: 'owner@webcreator.dev', password: 'Owner123!' },
@@ -26,8 +27,12 @@ export class LoginComponent {
     { role: 'Moderator', email: 'moderator@webcreator.dev', password: 'Mod123!' }
   ];
 
-  submit(): void {
-    const success = this.auth.login(this.email, this.password);
+  async submit(): Promise<void> {
+    this.isSubmitting.set(true);
+    this.errorMessage.set('');
+    const success = await this.auth.login(this.email, this.password);
+    this.isSubmitting.set(false);
+
     if (!success) {
       this.errorMessage.set('E-posta veya sifre hatali.');
       return;

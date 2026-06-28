@@ -106,6 +106,7 @@ export class SiteBuilderStore {
       name: safeName,
       slug,
       ownerId,
+      ownerUid: ownerId,
       status: 'draft',
       theme,
       access: this.defaultAccessSettings(),
@@ -1038,6 +1039,7 @@ export class SiteBuilderStore {
 
     return {
       ...project,
+      ownerUid: project.ownerUid ?? project.ownerId,
       theme,
       access,
       languages,

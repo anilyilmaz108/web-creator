@@ -17,7 +17,9 @@
         <input [(ngModel)]="siteName" name="siteName" placeholder="Ornek: Lotus Studio" />
       </label>
 
-      <button type="submit">Siteyi Olustur</button>
+      <button type="submit" [disabled]="isCreating()">
+        {{ isCreating() ? 'Olusturuluyor...' : 'Siteyi Olustur' }}
+      </button>
       <a routerLink="/login">Admin girisine don</a>
     </form>
   </div>

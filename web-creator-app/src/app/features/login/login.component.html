@@ -23,7 +23,9 @@
         <p class="error">{{ errorMessage() }}</p>
       }
 
-      <button type="submit">Giris Yap</button>
+      <button type="submit" [disabled]="isSubmitting()">
+        {{ isSubmitting() ? 'Giris yapiliyor...' : 'Giris Yap' }}
+      </button>
       <a routerLink="/create-site" class="public-create-link">Site Olusturmaya Basla</a>
     </form>
 
