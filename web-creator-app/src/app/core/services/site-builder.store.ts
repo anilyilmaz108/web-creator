@@ -22,16 +22,20 @@ import {
 } from '../models/builder.models';
 
 const PROJECTS_KEY = 'web-creator-projects';
+const CUSTOM_THEMES_KEY = 'web-creator-custom-themes';
 
 @Injectable({ providedIn: 'root' })
 export class SiteBuilderStore {
   private readonly projectsSignal = signal<SiteProject[]>(this.loadProjects());
+  private readonly customThemesSignal = signal<ThemeConfig[]>(this.loadCustomThemes());
   private readonly selectedSiteIdSignal = signal<string>(this.projectsSignal()[0]?.id ?? '');
   private readonly selectedBlockIdSignal = signal<string | null>(null);
   private readonly viewportSignal = signal<ViewportMode>('desktop');
 
   readonly projects = computed(() => this.projectsSignal());
   readonly themePresets = themePresets;
+  readonly customThemes = computed(() => this.customThemesSignal());
+  readonly availableThemes = computed(() => [...themePresets, ...this.customThemesSignal()]);
   readonly componentCatalog = componentCatalog;
   readonly selectedSiteId = computed(() => this.selectedSiteIdSignal());
   readonly selectedBlockId = computed(() => this.selectedBlockIdSignal());
@@ -176,6 +180,47 @@ export class SiteBuilderStore {
 
   updateTheme(patch: Partial<ThemeConfig>): void {
     this.patchSelectedSite((site) => ({ ...site, theme: { ...site.theme, ...patch } }));
+  }
+
+  saveCurrentTheme(name: string): boolean {
+    const site = this.selectedSite();
+    const trimmedName = name.trim();
+    if (!site || !trimmedName) {
+      return false;
+    }
+
+    const theme = this.normalizeTheme({
+      ...site.theme,
+      name: trimmedName
+    });
+
+    this.customThemesSignal.update((themes) => {
+      const existingIndex = themes.findIndex((item) => item.name.toLowerCase() === trimmedName.toLowerCase());
+      if (existingIndex >= 0) {
+        return themes.map((item, index) => (index === existingIndex ? theme : item));
+      }
+
+      return [theme, ...themes];
+    });
+
+    this.patchSelectedSite((currentSite) => ({
+      ...currentSite,
+      theme
+    }));
+    this.persistCustomThemes();
+    return true;
+  }
+
+  deleteCustomTheme(name: string): void {
+    const trimmedName = name.trim().toLowerCase();
+    if (!trimmedName) {
+      return;
+    }
+
+    this.customThemesSignal.update((themes) =>
+      themes.filter((theme) => theme.name.trim().toLowerCase() !== trimmedName)
+    );
+    this.persistCustomThemes();
   }
 
   updateSiteMeta(patch: Partial<Pick<SiteProject, 'name' | 'slug'>>): void {
@@ -562,6 +607,15 @@ export class SiteBuilderStore {
     return source.map((project) => this.normalizeProject(project));
   }
 
+  private loadCustomThemes(): ThemeConfig[] {
+    const raw = globalThis.localStorage?.getItem(CUSTOM_THEMES_KEY);
+    if (!raw) {
+      return [];
+    }
+
+    return (JSON.parse(raw) as ThemeConfig[]).map((theme) => this.normalizeTheme(theme));
+  }
+
   private normalizeProject(project: SiteProject): SiteProject {
     const theme = this.normalizeTheme(project.theme);
 
@@ -727,6 +781,10 @@ export class SiteBuilderStore {
 
   private persist(): void {
     globalThis.localStorage?.setItem(PROJECTS_KEY, JSON.stringify(this.projectsSignal()));
+  }
+
+  private persistCustomThemes(): void {
+    globalThis.localStorage?.setItem(CUSTOM_THEMES_KEY, JSON.stringify(this.customThemesSignal()));
   }
 
   private slugify(value: string): string {

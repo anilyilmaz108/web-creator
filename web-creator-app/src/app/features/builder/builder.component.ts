@@ -39,6 +39,7 @@ export class BuilderComponent {
   readonly selectedBlock = this.store.selectedBlock;
   readonly viewport = this.store.viewport;
   readonly presetThemes = this.store.themePresets;
+  readonly customThemes = this.store.customThemes;
   readonly viewports: ViewportMode[] = ['desktop', 'tablet', 'mobile'];
   readonly viewportOptions = [
     { value: 'desktop' as ViewportMode, label: 'Web', size: '1440px', description: 'Tarayici gorunumu' },
@@ -98,6 +99,7 @@ export class BuilderComponent {
   };
 
   newPageName = '';
+  customThemeName = '';
   catalogSearch = '';
   activeCatalogCategory = 'All';
   draggedBlockId: string | null = null;
@@ -246,6 +248,18 @@ export class BuilderComponent {
 
   applyThemePalette(color: string): void {
     this.store.updateTheme({ accent: color, accentSoft: `${color}22` });
+  }
+
+  saveCustomTheme(): void {
+    const fallbackName = this.selectedSite()?.theme.name ?? 'Custom Theme';
+    const saved = this.store.saveCurrentTheme(this.customThemeName.trim() || fallbackName);
+    if (saved) {
+      this.customThemeName = '';
+    }
+  }
+
+  deleteCustomTheme(name: string): void {
+    this.store.deleteCustomTheme(name);
   }
 
   applyBlockAccent(color: string): void {
