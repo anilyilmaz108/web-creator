@@ -29,6 +29,7 @@ export class DashboardComponent {
   readonly publishedProjects = this.builderStore.publishedProjects;
   readonly hostingTargets = this.builderStore.hostingTargets;
   readonly auditLogs = this.builderStore.auditLogs;
+  readonly saveStatus = this.builderStore.saveStatus;
   readonly simulatedSite = this.builderStore.simulatedSite;
   readonly isSimulating = this.builderStore.isSimulating;
   readonly canManageUsers = computed(() => ['superadmin', 'admin'].includes(this.currentUser()?.role ?? ''));

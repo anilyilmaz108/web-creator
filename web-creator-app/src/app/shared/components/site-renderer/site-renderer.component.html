@@ -14,6 +14,7 @@
 >
   @for (block of page.blocks; track trackByBlockId($index, block)) {
     <article
+      [attr.id]="block.id"
       class="group relative overflow-hidden border transition"
       (click)="selectBlock(block.id, $event)"
       [ngClass]="[widthClass(block.widthPreset), animationClass(block.animation), hoverEffectClass(block)]"

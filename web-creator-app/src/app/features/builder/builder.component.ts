@@ -51,6 +51,7 @@ export class BuilderComponent {
   readonly canUndo = this.store.canUndo;
   readonly canRedo = this.store.canRedo;
   readonly lastSavedAt = this.store.lastSavedAt;
+  readonly saveStatus = this.store.saveStatus;
   readonly publicationChecklist = computed(() => {
     const site = this.selectedSite();
     return site ? this.store.publicationChecklist(site) : [];

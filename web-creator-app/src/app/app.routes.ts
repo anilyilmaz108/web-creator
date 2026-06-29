@@ -30,6 +30,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/builder/builder.component').then((m) => m.BuilderComponent)
   },
   {
+    path: 'demo/:siteId/:pageSlug',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/demo/demo.component').then((m) => m.DemoComponent)
+  },
+  {
     path: 'demo/:siteId',
     canActivate: [authGuard],
     loadComponent: () => import('./features/demo/demo.component').then((m) => m.DemoComponent)

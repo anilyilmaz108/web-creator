@@ -53,6 +53,14 @@ interface SectionTemplate {
   blocks: Array<{ type: BlockType; widgetKind?: WidgetKind }>;
 }
 
+type SaveState = 'idle' | 'saving' | 'saved' | 'error' | 'info';
+
+interface SaveStatus {
+  state: SaveState;
+  message: string;
+  at?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class SiteBuilderStore {
   private readonly auth = inject(MockAuthService);
@@ -69,6 +77,7 @@ export class SiteBuilderStore {
   private readonly undoStackSignal = signal<string[]>([]);
   private readonly redoStackSignal = signal<string[]>([]);
   private readonly lastSavedAtSignal = signal<string | null>(null);
+  private readonly saveStatusSignal = signal<SaveStatus>({ state: 'idle', message: '' });
 
   readonly projects = computed(() => this.projectsSignal());
   readonly auditLogs = this.auditLog.logs;
@@ -84,6 +93,7 @@ export class SiteBuilderStore {
   readonly canUndo = computed(() => this.undoStackSignal().length > 0);
   readonly canRedo = computed(() => this.redoStackSignal().length > 0);
   readonly lastSavedAt = computed(() => this.lastSavedAtSignal());
+  readonly saveStatus = computed(() => this.saveStatusSignal());
   readonly sectionTemplates: SectionTemplate[] = [
     {
       id: 'landing-core',
@@ -248,13 +258,14 @@ export class SiteBuilderStore {
       seo: this.defaultSeoSettings(safeName, slug),
       mediaAssets: [],
       formSubmissions: this.defaultFormSubmissions(safeName),
-      metrics: this.defaultMetrics(),
+      metrics: { ...this.defaultMetrics(), updatedAt: now },
       costPolicy: this.defaultCostPolicy(),
       versionHistory: [],
       languages: this.defaultLanguages(),
       hostingTargets: [this.createHostingTarget(slug, 'Production', 'firebase', '', slug, 'draft')],
       selectedPageId: pageId,
       publication: { requestStatus: 'none' },
+      updatedAt: now,
       pages: [
         {
           id: pageId,
@@ -281,7 +292,7 @@ export class SiteBuilderStore {
 
     this.projectsSignal.update((projects) => [project, ...projects]);
     this.selectedSiteIdSignal.set(project.id);
-    this.persist();
+    this.persist([project]);
     this.saveVersionSnapshot('Ilk taslak', 'Site olusturuldu.');
     this.logAction('site.created', 'success', project.id, `${project.name} sitesi olusturuldu.`);
     return this.normalizeProject({ ...project, hostingTargets: project.hostingTargets.map((target) => ({ ...target, createdAt: now })) });
@@ -672,11 +683,15 @@ export class SiteBuilderStore {
         site.id,
         `${blockingCostAlerts.length} bloklayici maliyet/kota uyarisi nedeniyle yayin talebi engellendi.`
       );
+      this.updateSaveStatus(
+        'error',
+        `${blockingCostAlerts.length} bloklayici maliyet/kota uyarisi nedeniyle yayin talebi gonderilemedi.`
+      );
       return;
     }
 
     const failedChecks = site ? this.publicationChecklist(site).filter((item) => item.status === 'fail') : [];
-    this.patchSelectedSite((site) => ({
+    const changedSite = this.patchSelectedSite((site) => ({
       ...site,
       status: 'pending',
       publication: {
@@ -693,6 +708,15 @@ export class SiteBuilderStore {
       this.logAction('publication.checklist.warning', 'warning', undefined, `${failedChecks.length} yayin kontrolu eksik.`);
     }
     this.logAction('publication.requested', 'warning', undefined, 'Site yayin onayina gonderildi.');
+    if (changedSite) {
+      this.syncBackendAction(
+        'requestPublication',
+        { siteId: changedSite.id, hostingTargetId: changedSite.publication.hostingTargetId ?? null },
+        changedSite.id,
+        'Yayin talebi Firebase onay kuyruguna gonderildi.',
+        'Yayin talebi yerelde kaydedildi ancak backend kuyruguna gonderilemedi'
+      );
+    }
   }
 
   approvePublication(siteId: string, days: number, approvedBy?: string): void {
@@ -705,12 +729,17 @@ export class SiteBuilderStore {
         siteId,
         `${blockingCostAlerts.length} bloklayici maliyet/kota uyarisi nedeniyle onay engellendi.`
       );
+      this.updateSaveStatus(
+        'error',
+        `${blockingCostAlerts.length} bloklayici maliyet/kota uyarisi nedeniyle yayin onaylanamadi.`
+      );
       return;
     }
 
     const now = new Date();
     const approvedUntil = new Date(now);
     approvedUntil.setDate(now.getDate() + days);
+    let changedProject: SiteProject | null = null;
 
     this.projectsSignal.update((projects) =>
       projects.map((project) => {
@@ -722,7 +751,7 @@ export class SiteBuilderStore {
         const hostingTargets = this.activateHostingTarget(project, hostingTargetId, now.toISOString());
         const publishedUrl = this.resolvePublishedUrl(hostingTargets.find((target) => target.id === hostingTargetId));
 
-        return {
+        changedProject = this.touchProject({
           ...project,
           status: 'published',
           hostingTargets,
@@ -735,19 +764,28 @@ export class SiteBuilderStore {
             hostingTargetId,
             publishedUrl
           }
-        };
+        }, now.toISOString());
+        return changedProject;
       })
     );
-    this.persist();
+    this.persist(changedProject ? [changedProject] : undefined);
     this.logAction('publication.approved', 'success', siteId, `${days} gunluk yayin onayi verildi.`);
+    this.syncBackendAction(
+      'approvePublication',
+      { siteId, days },
+      siteId,
+      'Yayin onayi backend tarafinda tamamlandi.',
+      'Yayin onayi yerelde kaydedildi ancak backend onayi tamamlanamadi'
+    );
   }
 
   rejectPublication(siteId: string, reason: string, rejectedBy?: string): void {
     const now = new Date().toISOString();
+    let changedProject: SiteProject | null = null;
     this.projectsSignal.update((projects) =>
       projects.map((project) =>
         project.id === siteId
-          ? {
+          ? (changedProject = this.touchProject({
               ...project,
               status: 'draft',
               publication: {
@@ -757,12 +795,19 @@ export class SiteBuilderStore {
                 rejectedBy,
                 rejectionReason: reason || 'Yayin talebi reddedildi.'
               }
-            }
+            }, now))
           : project
       )
     );
-    this.persist();
+    this.persist(changedProject ? [changedProject] : undefined);
     this.logAction('publication.rejected', 'danger', siteId, reason || 'Yayin talebi reddedildi.');
+    this.syncBackendAction(
+      'rejectPublication',
+      { siteId, reason },
+      siteId,
+      'Yayin reddi backend tarafinda tamamlandi.',
+      'Yayin reddi yerelde kaydedildi ancak backend reddi tamamlanamadi'
+    );
   }
 
   publishToActiveHosting(siteId: string): void {
@@ -775,10 +820,15 @@ export class SiteBuilderStore {
         siteId,
         `${blockingCostAlerts.length} bloklayici maliyet/kota uyarisi nedeniyle yayin guncelleme engellendi.`
       );
+      this.updateSaveStatus(
+        'error',
+        `${blockingCostAlerts.length} bloklayici maliyet/kota uyarisi nedeniyle yayin guncellenemedi.`
+      );
       return;
     }
 
     const now = new Date().toISOString();
+    let changedProject: SiteProject | null = null;
     this.projectsSignal.update((projects) =>
       projects.map((project) => {
         if (project.id !== siteId) {
@@ -788,7 +838,7 @@ export class SiteBuilderStore {
         const activeTarget = project.hostingTargets.find((target) => target.status === 'active') ?? project.hostingTargets[0];
         const hostingTargets = this.activateHostingTarget(project, activeTarget?.id, now);
 
-        return {
+        changedProject = this.touchProject({
           ...project,
           status: 'published',
           hostingTargets,
@@ -799,20 +849,22 @@ export class SiteBuilderStore {
             hostingTargetId: activeTarget?.id,
             publishedUrl: this.resolvePublishedUrl(activeTarget)
           }
-        };
+        }, now);
+        return changedProject;
       })
     );
-    this.persist();
+    this.persist(changedProject ? [changedProject] : undefined);
     this.logAction('publication.updated', 'success', siteId, 'Aktif hosting uzerinden yayin guncellendi.');
   }
 
   stopPublication(siteId: string, reason = 'Yayin site yoneticisi tarafindan durduruldu.', stoppedBy?: string): void {
     const now = new Date().toISOString();
+    let changedProject: SiteProject | null = null;
 
     this.projectsSignal.update((projects) =>
       projects.map((project) =>
         project.id === siteId
-          ? {
+          ? (changedProject = this.touchProject({
               ...project,
               status: 'draft',
               hostingTargets: project.hostingTargets.map((target) =>
@@ -826,12 +878,19 @@ export class SiteBuilderStore {
                 stopReason: reason,
                 publishedUrl: undefined
               }
-            }
+            }, now))
           : project
       )
     );
-    this.persist();
+    this.persist(changedProject ? [changedProject] : undefined);
     this.logAction('publication.stopped', 'danger', siteId, reason);
+    this.syncBackendAction(
+      'stopPublication',
+      { siteId, reason },
+      siteId,
+      'Yayin backend tarafinda durduruldu.',
+      'Yayin durdurma yerelde kaydedildi ancak backend durdurma tamamlanamadi'
+    );
   }
 
   startSimulation(siteId: string): void {
@@ -924,19 +983,23 @@ export class SiteBuilderStore {
     }
 
     this.captureUndoState(site);
-    const restored = this.normalizeProject(JSON.parse(snapshot.snapshot) as SiteProject);
+    const restored = this.touchProject(this.normalizeProject(JSON.parse(snapshot.snapshot) as SiteProject));
+    let changedProject: SiteProject | null = null;
     this.projectsSignal.update((projects) =>
-      projects.map((project) =>
-        project.id === site.id
-          ? {
-              ...restored,
-              id: site.id,
-              versionHistory: site.versionHistory
-            }
-          : project
-      )
+      projects.map((project) => {
+        if (project.id !== site.id) {
+          return project;
+        }
+
+        changedProject = {
+          ...restored,
+          id: site.id,
+          versionHistory: site.versionHistory
+        };
+        return changedProject;
+      })
     );
-    this.persist();
+    this.persist(changedProject ? [changedProject] : undefined);
     this.logAction('version.snapshot.restored', 'warning', site.id, `${snapshot.name} snapshot geri yuklendi.`);
   }
 
@@ -1622,19 +1685,31 @@ export class SiteBuilderStore {
     return alerts;
   }
 
-  private patchSelectedSite(updater: (site: SiteProject) => SiteProject, options: { skipUndo?: boolean } = {}): void {
+  private patchSelectedSite(
+    updater: (site: SiteProject) => SiteProject,
+    options: { skipUndo?: boolean } = {}
+  ): SiteProject | null {
     const currentId = this.selectedSiteIdSignal();
     const currentSite = this.projectsSignal().find((project) => project.id === currentId);
     if (currentSite && !options.skipUndo) {
       this.captureUndoState(currentSite);
     }
+    let changedSite: SiteProject | null = null;
     this.projectsSignal.update((projects) =>
-      projects.map((project) => (project.id === currentId ? updater(project) : project))
+      projects.map((project) => {
+        if (project.id !== currentId) {
+          return project;
+        }
+
+        changedSite = this.touchProject(updater(project));
+        return changedSite;
+      })
     );
     if (!options.skipUndo) {
       this.redoStackSignal.set([]);
     }
-    this.persist();
+    this.persist(changedSite ? [changedSite] : undefined);
+    return changedSite;
   }
 
   private patchSelectedPage(updater: (page: SitePage) => SitePage): void {
@@ -2002,11 +2077,19 @@ export class SiteBuilderStore {
   }
 
   private replaceSiteFromSnapshot(snapshot: string): void {
-    const restored = this.normalizeProject(JSON.parse(snapshot) as SiteProject);
+    const restored = this.touchProject(this.normalizeProject(JSON.parse(snapshot) as SiteProject));
+    let changedProject: SiteProject | null = null;
     this.projectsSignal.update((projects) =>
-      projects.map((project) => (project.id === restored.id ? { ...restored, versionHistory: project.versionHistory } : project))
+      projects.map((project) => {
+        if (project.id !== restored.id) {
+          return project;
+        }
+
+        changedProject = { ...restored, versionHistory: project.versionHistory };
+        return changedProject;
+      })
     );
-    this.persist();
+    this.persist(changedProject ? [changedProject] : undefined);
   }
 
   private normalizeProject(project: SiteProject): SiteProject {
@@ -2022,6 +2105,8 @@ export class SiteBuilderStore {
       ? project.hostingTargets
       : [this.createHostingTarget(project.slug, 'Production', 'firebase', '', project.slug, 'draft')]
     ).map((target) => this.normalizeHostingTarget(target, project.slug));
+    const metrics = this.normalizeMetrics(project.metrics, project);
+    const updatedAt = project.updatedAt ?? metrics.updatedAt ?? new Date().toISOString();
 
     return {
       ...project,
@@ -2031,7 +2116,7 @@ export class SiteBuilderStore {
       seo,
       mediaAssets: (project.mediaAssets ?? []).map((asset) => this.normalizeMediaAsset(asset)),
       formSubmissions: project.formSubmissions ?? this.defaultFormSubmissions(project.name),
-      metrics: this.normalizeMetrics(project.metrics, project),
+      metrics,
       costPolicy: this.normalizeCostPolicy(project.costPolicy),
       versionHistory: project.versionHistory ?? [],
       languages,
@@ -2040,6 +2125,7 @@ export class SiteBuilderStore {
         ...(project.publication ?? {}),
         requestStatus: project.publication?.requestStatus ?? 'none'
       },
+      updatedAt,
       pages: project.pages.map((page) => ({
         ...page,
         localizedSlugs: this.normalizeLocalizedSlugs(page, languages),
@@ -2459,11 +2545,134 @@ export class SiteBuilderStore {
     } as PageBlock;
   }
 
-  private persist(): void {
+  private touchProject(project: SiteProject, at = new Date().toISOString()): SiteProject {
+    const normalized = this.normalizeProject({
+      ...project,
+      updatedAt: at,
+      metrics: {
+        ...project.metrics,
+        updatedAt: at
+      }
+    });
+
+    return {
+      ...normalized,
+      updatedAt: at,
+      metrics: {
+        ...normalized.metrics,
+        updatedAt: at
+      }
+    };
+  }
+
+  private projectTimestamp(project: SiteProject): number {
+    const rawTimestamp = project.updatedAt ?? project.metrics?.updatedAt;
+    return rawTimestamp ? new Date(rawTimestamp).getTime() || 0 : 0;
+  }
+
+  private mergeProjects(localProjects: SiteProject[], remoteProjects: SiteProject[]): SiteProject[] {
+    const merged = new Map<string, SiteProject>();
+
+    for (const project of remoteProjects) {
+      const normalized = this.normalizeProject(project);
+      merged.set(normalized.id, normalized);
+    }
+
+    for (const project of localProjects) {
+      const normalized = this.normalizeProject(project);
+      const remote = merged.get(normalized.id);
+
+      if (!remote || this.projectTimestamp(normalized) >= this.projectTimestamp(remote)) {
+        merged.set(normalized.id, normalized);
+      }
+    }
+
+    return Array.from(merged.values()).sort((a, b) => this.projectTimestamp(b) - this.projectTimestamp(a));
+  }
+
+  private updateSaveStatus(state: SaveState, message: string, at = new Date().toISOString()): void {
+    this.saveStatusSignal.set({ state, message, at });
+  }
+
+  private syncBackendAction(
+    functionName: 'requestPublication' | 'approvePublication' | 'rejectPublication' | 'stopPublication',
+    payload: Record<string, unknown>,
+    siteId: string,
+    successMessage: string,
+    failurePrefix: string
+  ): void {
+    if (!this.firebaseData.enabled) {
+      return;
+    }
+
+    this.updateSaveStatus('saving', 'Backend yayin islemi baslatildi...');
+    void (async () => {
+      const project = this.findById(siteId);
+      if (project) {
+        const synced = await this.firebaseData.saveProject(project);
+        if (!synced) {
+          throw new Error('Site dokumani Firebase uzerine yazilamadi.');
+        }
+      }
+
+      await this.firebaseData.callFunctionStrict(functionName, payload);
+    })()
+      .then(() => {
+        this.updateSaveStatus('saved', successMessage);
+      })
+      .catch((error) => {
+        const details = `${failurePrefix}: ${this.firebaseErrorMessage(error)}`;
+        this.updateSaveStatus('error', details);
+        this.logAction(`${functionName}.backend_failed`, 'danger', siteId, details);
+      });
+  }
+
+  private firebaseErrorMessage(error: unknown): string {
+    if (error && typeof error === 'object') {
+      const candidate = error as { code?: string; message?: string };
+      return [candidate.code, candidate.message].filter(Boolean).join(' - ') || 'Bilinmeyen Firebase hatasi.';
+    }
+
+    return String(error || 'Bilinmeyen Firebase hatasi.');
+  }
+
+  private persist(remoteProjects?: SiteProject[]): void {
     const projects = this.projectsSignal();
     globalThis.localStorage?.setItem(PROJECTS_KEY, JSON.stringify(projects));
-    this.firebaseData.saveProjects(projects);
-    this.lastSavedAtSignal.set(new Date().toISOString());
+    const savedAt = new Date().toISOString();
+    const projectsToSync = remoteProjects ?? projects;
+    this.lastSavedAtSignal.set(savedAt);
+
+    if (!this.firebaseData.enabled) {
+      this.updateSaveStatus('saved', 'Degisiklikler bu tarayicida kaydedildi.', savedAt);
+      return;
+    }
+
+    if (!projectsToSync.length) {
+      this.updateSaveStatus('saved', 'Degisiklikler kaydedildi.', savedAt);
+      return;
+    }
+
+    this.updateSaveStatus('saving', 'Firebase kaydi yapiliyor...', savedAt);
+    void this.firebaseData
+      .saveProjects(projectsToSync)
+      .then((result) => {
+        if (result.failed > 0) {
+          this.updateSaveStatus(
+            'error',
+            'Degisiklikler bu tarayicida kaydedildi ancak Firebase kaydi tamamlanamadi. Oturum/yetki veya baglanti kontrol edilmeli.'
+          );
+          return;
+        }
+
+        this.updateSaveStatus('saved', 'Degisiklikler Firebase ile kaydedildi.');
+      })
+      .catch((error) => {
+        this.updateSaveStatus(
+          'error',
+          `Degisiklikler bu tarayicida kaydedildi ancak Firebase kaydi tamamlanamadi: ${this.firebaseErrorMessage(error)}`
+        );
+      });
   }
 
   private blockingCostAlerts(project: SiteProject): CostAlert[] {
@@ -2579,9 +2788,14 @@ export class SiteBuilderStore {
         return;
       }
 
-      this.projectsSignal.set(projects.map((project) => this.normalizeProject(project)));
-      this.selectedSiteIdSignal.set(this.projectsSignal()[0]?.id ?? '');
-      globalThis.localStorage?.setItem(PROJECTS_KEY, JSON.stringify(this.projectsSignal()));
+      const mergedProjects = this.mergeProjects(this.projectsSignal(), projects);
+      this.projectsSignal.set(mergedProjects);
+
+      if (!mergedProjects.some((project) => project.id === this.selectedSiteIdSignal())) {
+        this.selectedSiteIdSignal.set(mergedProjects[0]?.id ?? '');
+      }
+
+      globalThis.localStorage?.setItem(PROJECTS_KEY, JSON.stringify(mergedProjects));
     });
 
   }

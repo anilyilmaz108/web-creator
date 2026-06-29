@@ -1,3 +1,11 @@
 :host {
   display: block;
 }
+
+:host input,
+:host textarea,
+:host [contenteditable='true'] {
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: plaintext;
+}

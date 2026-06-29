@@ -39,6 +39,27 @@ small {
   color: #64748b;
 }
 
+.notice {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(14, 116, 144, 0.18);
+  border-radius: 18px;
+  color: #155e75;
+  background: #ecfeff;
+}
+
+.notice--saved {
+  border-color: rgba(15, 118, 110, 0.18);
+  color: #0f766e;
+  background: #ccfbf1;
+}
+
+.notice--error {
+  border-color: rgba(190, 18, 60, 0.2);
+  color: #be123c;
+  background: #ffe4e6;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;

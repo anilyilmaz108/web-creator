@@ -26,6 +26,16 @@
     }
   }
 
+  @if (saveStatus().message) {
+    <section
+      class="simulation-bar"
+      [style.background]="saveStatus().state === 'error' ? '#ffe4e6' : '#ecfeff'"
+      [style.color]="saveStatus().state === 'error' ? '#be123c' : '#155e75'"
+    >
+      {{ saveStatus().message }}
+    </section>
+  }
+
   <div class="stats">
     <article>
       <span>Projeler</span>

@@ -45,22 +45,38 @@ export class FirebaseDataService {
     return this.runtimeConfig.firebaseHostingUrl ?? environment.firebaseHostingUrl;
   }
 
-  saveProjects(projects: SiteProject[]): void {
+  async saveProject(project: SiteProject): Promise<boolean> {
     if (!this.enabled) {
-      return;
+      return true;
     }
 
-    void this.withFirestore(async (firestore, firestoreApi) => {
-      await Promise.allSettled(
-        projects.map((project) =>
-          firestoreApi.setDoc(
-            firestoreApi.doc(firestore, 'sites', project.id),
-            this.projectForFirestore(project),
-            { merge: true }
-          )
-        )
+    try {
+      const firestoreApi = await import('firebase/firestore');
+      const firestore = await this.getFirestore();
+      await firestoreApi.setDoc(
+        firestoreApi.doc(firestore, 'sites', project.id),
+        this.projectForFirestore(project),
+        { merge: true }
       );
-    }, 'Firebase project sync failed');
+      return true;
+    } catch (error) {
+      console.warn('Firebase project sync failed', error);
+      return false;
+    }
+  }
+
+  async saveProjects(projects: SiteProject[]): Promise<{ succeeded: number; failed: number }> {
+    if (!this.enabled) {
+      return { succeeded: projects.length, failed: 0 };
+    }
+
+    const results = await Promise.allSettled(projects.map((project) => this.saveProject(project)));
+    const succeeded = results.filter((result) => result.status === 'fulfilled' && result.value).length;
+
+    return {
+      succeeded,
+      failed: projects.length - succeeded
+    };
   }
 
   saveAuditLogs(logs: AuditLogEntry[]): void {
@@ -152,17 +168,25 @@ export class FirebaseDataService {
     }
 
     try {
-      const functionsApi = await import('firebase/functions');
-      const callable = functionsApi.httpsCallable(
-        functionsApi.getFunctions(await this.getApp(), 'europe-west3'),
-        name
-      );
-      const response = await callable(payload);
-      return response.data as T;
+      return await this.callFunctionStrict<T>(name, payload);
     } catch (error) {
       console.warn(`Firebase function ${name} failed`, error);
       return null;
     }
+  }
+
+  async callFunctionStrict<T>(name: string, payload: unknown): Promise<T> {
+    if (!this.enabled) {
+      throw new Error('Firebase aktif degil.');
+    }
+
+    const functionsApi = await import('firebase/functions');
+    const callable = functionsApi.httpsCallable(
+      functionsApi.getFunctions(await this.getApp(), 'europe-west3'),
+      name
+    );
+    const response = await callable(payload);
+    return response.data as T;
   }
 
   getFirebaseOptions(): FirebaseOptions {

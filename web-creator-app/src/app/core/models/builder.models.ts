@@ -378,4 +378,5 @@ export interface SiteProject {
   pages: SitePage[];
   selectedPageId: string;
   publication: PublicationSettings;
+  updatedAt?: string;
 }

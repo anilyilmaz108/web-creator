@@ -23,6 +23,7 @@ export class SiteAdminDashboardComponent {
   readonly site = computed(() => this.store.findById(this.route.snapshot.paramMap.get('siteId') ?? ''));
   readonly currentUser = this.auth.currentUser;
   readonly isSimulating = this.store.isSimulating;
+  readonly saveStatus = this.store.saveStatus;
   readonly logs = computed(() => {
     const site = this.site();
     return site ? this.store.logsForSite(site.id).slice(0, 14) : [];

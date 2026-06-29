@@ -76,6 +76,19 @@
         </div>
       </header>
 
+      @if (saveStatus().message) {
+        <div
+          class="rounded-[22px] border px-5 py-3 text-sm shadow-panel"
+          [ngClass]="{
+            'border-cyan-300/20 bg-cyan-300/10 text-cyan-50': saveStatus().state === 'saving' || saveStatus().state === 'info',
+            'border-emerald-300/20 bg-emerald-300/10 text-emerald-50': saveStatus().state === 'saved',
+            'border-rose-300/25 bg-rose-400/10 text-rose-50': saveStatus().state === 'error'
+          }"
+        >
+          {{ saveStatus().message }}
+        </div>
+      }
+
       <div class="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)_390px]">
         <aside class="rounded-[28px] border border-white/10 bg-slate-950/70 p-4 shadow-panel backdrop-blur">
           <div class="space-y-6">
@@ -442,9 +455,17 @@
                         <span class="mt-1 block text-sm uppercase tracking-[0.18em] text-slate-400">
                           {{ block.type }} · {{ block.layout }} · {{ block.animation }}
                         </span>
+                        <span class="mt-1 block break-all text-xs text-slate-500">ID: {{ block.id }}</span>
                       </button>
 
                       <div class="flex flex-wrap gap-2">
+                        <a
+                          [routerLink]="['/demo', site.id]"
+                          [fragment]="block.id"
+                          class="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-sm text-cyan-100 transition hover:bg-cyan-300/20"
+                        >
+                          ID'ye Git
+                        </a>
                         <button
                           type="button"
                           (click)="store.moveBlock(block.id, 'up')"

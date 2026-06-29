@@ -21,6 +21,12 @@
       </div>
     </header>
 
+    @if (saveStatus().message) {
+      <section class="notice" [class.notice--error]="saveStatus().state === 'error'" [class.notice--saved]="saveStatus().state === 'saved'">
+        {{ saveStatus().message }}
+      </section>
+    }
+
     <div class="stats">
       @for (stat of stats(); track stat.label) {
         <article>
