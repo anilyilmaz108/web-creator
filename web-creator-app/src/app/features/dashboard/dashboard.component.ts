@@ -281,12 +281,20 @@ export class DashboardComponent {
   }
 
   hostingUrl(project: SiteProject): string {
+    if (project.costPolicy.deployStrategy === 'shared-route') {
+      return this.builderStore.publicSiteUrl(project.slug);
+    }
+
     const target =
       project.hostingTargets.find((item) => item.id === project.publication.hostingTargetId) ??
       project.hostingTargets.find((item) => item.status === 'active') ??
       project.hostingTargets[0];
 
     return target?.customDomain || target?.defaultUrl || 'URL bekliyor';
+  }
+
+  canOpenPublic(project: SiteProject): boolean {
+    return project.status === 'published' && this.activeHosting(project);
   }
 
   activeHosting(project: SiteProject): boolean {

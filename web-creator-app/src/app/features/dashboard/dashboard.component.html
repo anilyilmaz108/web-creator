@@ -126,7 +126,11 @@
               <button type="button" (click)="openBuilder(project.id)">Builder</button>
               <a class="button-muted" [routerLink]="['/demo', project.id]">Demo Izle</a>
               <button type="button" class="button-muted" (click)="openSiteAdmin(project.id)">Site Admin</button>
-              <a [routerLink]="['/sites', project.slug]">Public</a>
+              @if (canOpenPublic(project)) {
+                <a [routerLink]="['/sites', project.slug]">Public</a>
+              } @else {
+                <button type="button" class="button-muted" disabled>Public Onaydan Sonra</button>
+              }
               @if (currentUser()?.role === 'superadmin') {
                 <button type="button" class="button-muted" (click)="startSimulation(project)">Simule Et</button>
               }
@@ -137,6 +141,19 @@
                 <button type="button" class="button-danger" (click)="stopPublication(project)">
                   Yayini Durdur
                 </button>
+              } @else if (project.status === 'pending') {
+                @if (canReviewPublications()) {
+                  <button type="button" class="button-secondary" (click)="approvePublication(project, 30)">
+                    30 Gun Onayla
+                  </button>
+                  <button type="button" class="button-danger" (click)="rejectPublication(project)">
+                    Reddet
+                  </button>
+                } @else {
+                  <button type="button" class="button-muted" disabled>
+                    Onay Bekliyor
+                  </button>
+                }
               } @else {
                 <button type="button" class="button-secondary" (click)="requestPublication(project)">
                   Yayina Gonder

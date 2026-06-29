@@ -1,31 +1,55 @@
-@if (site && canView) {
-  <section class="public-site">
-    <nav class="language-bar">
-      @for (language of site.languages; track language.id) {
-        @if (language.enabled) {
-          <a [href]="'/' + language.pathPrefix + '/' + site.slug">{{ language.label }}</a>
-        }
-      }
-    </nav>
-    @for (page of site.pages; track page.id) {
-      <app-site-renderer [page]="page" [theme]="site.theme" mode="public" />
-    }
-  </section>
-} @else if (site && isAvailable) {
+@if (loading()) {
   <section class="unavailable">
     <div>
-      <p>{{ site.access.gatedMessage }}</p>
-      <h1>{{ site.access.loginTitle }}</h1>
-      <a routerLink="/login">
-        {{ site.access.mode === 'signup' && site.access.allowSelfRegistration ? 'Kayit Ol / Giris Yap' : 'Giris Yap' }}
-      </a>
+      <p>Site yukleniyor...</p>
     </div>
   </section>
 } @else {
-  <section class="unavailable">
-    <div>
-      <p>Bu site su anda yayinda degil veya onay suresi doldu.</p>
-      <a routerLink="/dashboard">Admin Paneline Don</a>
-    </div>
-  </section>
+  @if (site(); as site) {
+    @if (canView) {
+      <section class="public-site">
+        <nav class="language-bar">
+          @for (page of site.pages; track page.id) {
+            @if (page.blocks.length) {
+              <a [href]="pageUrl(site, page)" [class.active]="currentPage()?.id === page.id">{{ page.name }}</a>
+            }
+          }
+        </nav>
+        @if (currentPage(); as page) {
+          <app-site-renderer [page]="page" [theme]="site.theme" mode="public" />
+        } @else {
+          <section class="unavailable inline">
+            <div>
+              <p>Bu sayfa bulunamadi.</p>
+              <a [href]="pageUrl(site, site.pages[0])">Ana sayfaya don</a>
+            </div>
+          </section>
+        }
+      </section>
+    } @else if (isAvailable) {
+      <section class="unavailable">
+        <div>
+          <p>{{ site.access.gatedMessage }}</p>
+          <h1>{{ site.access.loginTitle }}</h1>
+          <a routerLink="/login">
+            {{ site.access.mode === 'signup' && site.access.allowSelfRegistration ? 'Kayit Ol / Giris Yap' : 'Giris Yap' }}
+          </a>
+        </div>
+      </section>
+    } @else {
+      <section class="unavailable">
+        <div>
+          <p>Bu site su anda yayinda degil veya onay suresi doldu.</p>
+          <a routerLink="/dashboard">Admin Paneline Don</a>
+        </div>
+      </section>
+    }
+  } @else {
+    <section class="unavailable">
+      <div>
+        <p>Bu site bulunamadi veya yayinda degil.</p>
+        <a routerLink="/dashboard">Admin Paneline Don</a>
+      </div>
+    </section>
+  }
 }

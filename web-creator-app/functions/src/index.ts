@@ -7,6 +7,7 @@ initializeApp();
 
 const db = getFirestore();
 const region = 'europe-west3';
+const platformHostingUrl = 'https://web-creator-anilyilmaz.web.app';
 
 type UserRole = 'superadmin' | 'admin' | 'moderator' | 'visitor';
 type AuditLogLevel = 'info' | 'warning' | 'success' | 'danger';
@@ -40,6 +41,7 @@ interface SiteCostPolicy {
 interface SiteDocument {
   id: string;
   name: string;
+  slug?: string;
   ownerId?: string;
   ownerUid?: string;
   status: string;
@@ -186,7 +188,7 @@ export const approvePublication = onCall({ region }, async (request) => {
   const hostingTargetId = String(site.publication?.['hostingTargetId'] ?? site.hostingTargets?.[0]?.id ?? '');
   const hostingTargets = activateHostingTarget(site, hostingTargetId, now.toISOString());
   const activeTarget = hostingTargets.find((target) => target.id === hostingTargetId) ?? hostingTargets[0];
-  const publishedUrl = resolvePublishedUrl(activeTarget);
+  const publishedUrl = resolvePublishedUrl(site, activeTarget);
 
   await db.doc(`sites/${siteId}`).set({
     status: 'published',
@@ -365,6 +367,7 @@ async function writeAuditLog(payload: {
 function activateHostingTarget(site: SiteDocument, hostingTargetId: string, publishedAt: string): HostingTarget[] {
   const targets = site.hostingTargets ?? [];
   const targetId = hostingTargetId || targets[0]?.id;
+  const sharedRoute = (site.costPolicy?.deployStrategy ?? 'shared-route') === 'shared-route';
 
   return targets.map((target) =>
     target.id === targetId
@@ -372,18 +375,40 @@ function activateHostingTarget(site: SiteDocument, hostingTargetId: string, publ
           ...target,
           status: 'active',
           lastPublishedAt: publishedAt,
-          defaultUrl: target.defaultUrl || `https://${target.firebaseSiteId || site.id}.web.app`
+          defaultUrl: sharedRoute ? platformSiteUrl(site) : target.defaultUrl || `https://${target.firebaseSiteId || site.id}.web.app`
         }
       : target
   );
 }
 
-function resolvePublishedUrl(target: HostingTarget | undefined): string {
+function resolvePublishedUrl(site: SiteDocument, target: HostingTarget | undefined): string {
   if (!target) {
     return '';
   }
 
+  if ((site.costPolicy?.deployStrategy ?? 'shared-route') === 'shared-route') {
+    return platformSiteUrl(site);
+  }
+
   return target.customDomain || target.defaultUrl || `https://${target.firebaseSiteId}.web.app`;
+}
+
+function platformSiteUrl(site: SiteDocument): string {
+  return `${platformHostingUrl}/sites/${slugify(site.slug || site.id)}`;
+}
+
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ş/g, 's')
+    .replace(/ı/g, 'i')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'site';
 }
 
 function blockingCostAlertsForSite(site: SiteDocument): string[] {

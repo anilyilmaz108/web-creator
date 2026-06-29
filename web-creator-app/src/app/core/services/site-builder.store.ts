@@ -923,6 +923,40 @@ export class SiteBuilderStore {
     return this.projectsSignal().find((project) => project.slug === slug) ?? null;
   }
 
+  publicSiteUrl(slug: string, pageSlug = ''): string {
+    const safeSlug = this.slugify(slug) || slug;
+    const safePageSlug = pageSlug ? this.slugify(pageSlug) || pageSlug : '';
+    const tenantDomain = this.firebaseData.tenantDomainLinksEnabled
+      ? this.normalizeDomain(this.firebaseData.tenantDomainBase)
+      : '';
+
+    if (tenantDomain && safeSlug) {
+      return `https://${safeSlug}.${tenantDomain}${safePageSlug ? `/${safePageSlug}` : ''}`;
+    }
+
+    return this.platformSiteUrl(slug, pageSlug);
+  }
+
+  async loadPublishedSiteBySlug(slug: string): Promise<SiteProject | null> {
+    const localSite = this.findBySlug(slug);
+    if (localSite?.status === 'published') {
+      return localSite;
+    }
+
+    const remoteSite = await this.firebaseData.loadPublishedProjectBySlug(slug);
+    if (!remoteSite) {
+      return null;
+    }
+
+    const normalized = this.normalizeProject(remoteSite);
+    this.projectsSignal.update((projects) => [
+      normalized,
+      ...projects.filter((project) => project.id !== normalized.id)
+    ]);
+    globalThis.localStorage?.setItem(PROJECTS_KEY, JSON.stringify(this.projectsSignal()));
+    return normalized;
+  }
+
   undoSelectedSite(): void {
     const current = this.selectedSite();
     const previous = this.undoStackSignal()[0];
@@ -2101,10 +2135,20 @@ export class SiteBuilderStore {
     );
     const access = this.normalizeAccess(project.access);
     const seo = this.normalizeSeo(project.seo, project.name, project.slug);
+    const costPolicy = this.normalizeCostPolicy(project.costPolicy);
     const hostingTargets = (project.hostingTargets?.length
       ? project.hostingTargets
       : [this.createHostingTarget(project.slug, 'Production', 'firebase', '', project.slug, 'draft')]
-    ).map((target) => this.normalizeHostingTarget(target, project.slug));
+    )
+      .map((target) => this.normalizeHostingTarget(target, project.slug))
+      .map((target) =>
+        costPolicy.deployStrategy === 'shared-route'
+          ? {
+              ...target,
+              defaultUrl: this.platformSiteUrl(project.slug)
+            }
+          : target
+      );
     const metrics = this.normalizeMetrics(project.metrics, project);
     const updatedAt = project.updatedAt ?? metrics.updatedAt ?? new Date().toISOString();
 
@@ -2117,7 +2161,7 @@ export class SiteBuilderStore {
       mediaAssets: (project.mediaAssets ?? []).map((asset) => this.normalizeMediaAsset(asset)),
       formSubmissions: project.formSubmissions ?? this.defaultFormSubmissions(project.name),
       metrics,
-      costPolicy: this.normalizeCostPolicy(project.costPolicy),
+      costPolicy,
       versionHistory: project.versionHistory ?? [],
       languages,
       hostingTargets,
@@ -2340,6 +2384,12 @@ export class SiteBuilderStore {
     status: HostingTarget['status']
   ): HostingTarget {
     const safeSiteId = this.slugify(firebaseSiteId || siteSlug) || siteSlug;
+    const defaultUrl =
+      provider === 'firebase'
+        ? firebaseProjectId.trim()
+          ? `https://${safeSiteId}.web.app`
+          : this.platformSiteUrl(siteSlug)
+        : '';
 
     return {
       id: `hosting-${crypto.randomUUID()}`,
@@ -2347,7 +2397,7 @@ export class SiteBuilderStore {
       provider,
       firebaseProjectId: firebaseProjectId.trim(),
       firebaseSiteId: safeSiteId,
-      defaultUrl: provider === 'firebase' ? `https://${safeSiteId}.web.app` : '',
+      defaultUrl,
       customDomain: '',
       status,
       createdAt: new Date().toISOString(),
@@ -2388,7 +2438,10 @@ export class SiteBuilderStore {
             ...target,
             status: 'active',
             lastPublishedAt: publishedAt,
-            defaultUrl: target.defaultUrl || `https://${target.firebaseSiteId || project.slug}.web.app`
+            defaultUrl:
+              project.costPolicy.deployStrategy === 'shared-route'
+                ? this.platformSiteUrl(project.slug)
+                : target.defaultUrl || `https://${target.firebaseSiteId || project.slug}.web.app`
           }
         : target
     );
@@ -2400,6 +2453,17 @@ export class SiteBuilderStore {
     }
 
     return target.customDomain || target.defaultUrl || `https://${target.firebaseSiteId}.web.app`;
+  }
+
+  private platformSiteUrl(slug: string, pageSlug = ''): string {
+    const baseUrl = (this.firebaseData.hostingUrl || globalThis.location?.origin || '').replace(/\/$/, '');
+    const safeSlug = this.slugify(slug) || slug;
+    const safePageSlug = pageSlug ? this.slugify(pageSlug) || pageSlug : '';
+    return `${baseUrl}/sites/${safeSlug}${safePageSlug ? `/${safePageSlug}` : ''}`;
+  }
+
+  private normalizeDomain(value: string): string {
+    return value.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
   }
 
   private normalizeBlock(block: PageBlock, theme: ThemeConfig): PageBlock {

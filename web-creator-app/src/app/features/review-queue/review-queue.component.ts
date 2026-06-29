@@ -31,6 +31,10 @@ export class ReviewQueueComponent {
 
   hostingUrl(siteId: string): string {
     const project = this.store.findById(siteId);
+    if (project?.costPolicy.deployStrategy === 'shared-route') {
+      return this.store.publicSiteUrl(project.slug);
+    }
+
     const target =
       project?.hostingTargets.find((item) => item.id === project.publication.hostingTargetId) ??
       project?.hostingTargets[0];

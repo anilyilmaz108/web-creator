@@ -5,6 +5,9 @@ export const environment = {
   firebaseProjectId: '',
   firebaseHostingSite: '',
   firebaseHostingUrl: '',
+  tenantDomainBase: '',
+  tenantDomainRoutingEnabled: false,
+  tenantDomainLinksEnabled: false,
   firebase: {
     apiKey: '',
     authDomain: '',

@@ -9,11 +9,34 @@ type FirebaseFirestore = Awaited<ReturnType<typeof import('firebase/firestore').
 type FirebaseApp = Awaited<ReturnType<typeof import('firebase/app').initializeApp>>;
 type FirebaseAuth = Awaited<ReturnType<typeof import('firebase/auth').getAuth>>;
 
+interface FirestoreRestDocument {
+  name: string;
+  fields?: Record<string, FirestoreRestValue>;
+}
+
+interface FirestoreRestQueryRow {
+  document?: FirestoreRestDocument;
+}
+
+interface FirestoreRestValue {
+  stringValue?: string;
+  integerValue?: string;
+  doubleValue?: number;
+  booleanValue?: boolean;
+  nullValue?: null;
+  timestampValue?: string;
+  mapValue?: { fields?: Record<string, FirestoreRestValue> };
+  arrayValue?: { values?: FirestoreRestValue[] };
+}
+
 interface FirebaseRuntimeConfig {
   firebaseEnabled?: boolean;
   firebaseProjectId?: string;
   firebaseHostingSite?: string;
   firebaseHostingUrl?: string;
+  tenantDomainBase?: string;
+  tenantDomainRoutingEnabled?: boolean;
+  tenantDomainLinksEnabled?: boolean;
   firebase?: FirebaseOptions;
 }
 
@@ -43,6 +66,18 @@ export class FirebaseDataService {
 
   get hostingUrl(): string {
     return this.runtimeConfig.firebaseHostingUrl ?? environment.firebaseHostingUrl;
+  }
+
+  get tenantDomainBase(): string {
+    return this.runtimeConfig.tenantDomainBase ?? environment.tenantDomainBase;
+  }
+
+  get tenantDomainRoutingEnabled(): boolean {
+    return this.runtimeConfig.tenantDomainRoutingEnabled ?? environment.tenantDomainRoutingEnabled;
+  }
+
+  get tenantDomainLinksEnabled(): boolean {
+    return this.runtimeConfig.tenantDomainLinksEnabled ?? environment.tenantDomainLinksEnabled;
   }
 
   async saveProject(project: SiteProject): Promise<boolean> {
@@ -117,6 +152,138 @@ export class FirebaseDataService {
     }
 
     return this.readCollection<SiteProject>('sites', 'Firebase project load failed');
+  }
+
+  async loadPublishedProjectBySlug(slug: string): Promise<SiteProject | null> {
+    if (!this.enabled || !slug.trim()) {
+      return null;
+    }
+
+    const restProject = await this.loadPublishedProjectBySlugRest(slug.trim());
+    if (restProject) {
+      return restProject;
+    }
+
+    try {
+      const firestoreApi = await import('firebase/firestore');
+      const firestore = await this.getFirestore();
+      const snapshot = await firestoreApi.getDocs(
+        firestoreApi.query(
+          firestoreApi.collection(firestore, 'sites'),
+          firestoreApi.where('slug', '==', slug.trim()),
+          firestoreApi.where('status', '==', 'published'),
+          firestoreApi.limit(1)
+        )
+      );
+      const item = snapshot.docs[0];
+      return item ? ({ id: item.id, ...item.data() } as SiteProject) : null;
+    } catch (error) {
+      console.warn('Firebase published project load failed', error);
+      return null;
+    }
+  }
+
+  private async loadPublishedProjectBySlugRest(slug: string): Promise<SiteProject | null> {
+    try {
+      const projectId = this.projectId || this.getFirebaseOptions().projectId;
+      if (!projectId || !globalThis.fetch) {
+        return null;
+      }
+
+      const response = await fetch(
+        `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(
+          projectId
+        )}/databases/(default)/documents:runQuery`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            structuredQuery: {
+              from: [{ collectionId: 'sites' }],
+              where: {
+                compositeFilter: {
+                  op: 'AND',
+                  filters: [
+                    {
+                      fieldFilter: {
+                        field: { fieldPath: 'slug' },
+                        op: 'EQUAL',
+                        value: { stringValue: slug }
+                      }
+                    },
+                    {
+                      fieldFilter: {
+                        field: { fieldPath: 'status' },
+                        op: 'EQUAL',
+                        value: { stringValue: 'published' }
+                      }
+                    }
+                  ]
+                }
+              },
+              limit: 1
+            }
+          })
+        }
+      );
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const rows = (await response.json()) as FirestoreRestQueryRow[];
+      const document = rows.find((row) => row.document)?.document;
+      if (!document?.fields) {
+        return null;
+      }
+
+      const data = this.restFieldsToObject(document.fields) as Partial<SiteProject>;
+      const id = document.name.split('/').pop() ?? data.id ?? '';
+      return { ...data, id: data.id || id } as SiteProject;
+    } catch (error) {
+      console.warn('Firebase published project REST load failed', error);
+      return null;
+    }
+  }
+
+  private restFieldsToObject(fields: Record<string, FirestoreRestValue>): Record<string, unknown> {
+    return Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, this.restValueToJs(value)]));
+  }
+
+  private restValueToJs(value: FirestoreRestValue): unknown {
+    if (value.stringValue !== undefined) {
+      return value.stringValue;
+    }
+
+    if (value.integerValue !== undefined) {
+      return Number(value.integerValue);
+    }
+
+    if (value.doubleValue !== undefined) {
+      return value.doubleValue;
+    }
+
+    if (value.booleanValue !== undefined) {
+      return value.booleanValue;
+    }
+
+    if (value.nullValue !== undefined) {
+      return null;
+    }
+
+    if (value.timestampValue !== undefined) {
+      return value.timestampValue;
+    }
+
+    if (value.mapValue) {
+      return this.restFieldsToObject(value.mapValue.fields ?? {});
+    }
+
+    if (value.arrayValue) {
+      return (value.arrayValue.values ?? []).map((item) => this.restValueToJs(item));
+    }
+
+    return undefined;
   }
 
   async loadAuditLogs(): Promise<AuditLogEntry[]> {

@@ -3,6 +3,9 @@ window.webCreatorFirebaseConfig = {
   firebaseProjectId: 'your-firebase-project-id',
   firebaseHostingSite: 'your-firebase-hosting-site',
   firebaseHostingUrl: 'https://your-firebase-hosting-site.web.app',
+  tenantDomainBase: 'webcreator.app',
+  tenantDomainRoutingEnabled: true,
+  tenantDomainLinksEnabled: false,
   firebase: {
     apiKey: 'your-web-api-key',
     authDomain: 'your-firebase-project-id.firebaseapp.com',

@@ -1,9 +1,50 @@
-import { Routes } from '@angular/router';
+import { Routes, UrlMatchResult, UrlSegment } from '@angular/router';
 
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
 
+interface TenantRuntimeConfig {
+  tenantDomainBase?: string;
+  tenantDomainRoutingEnabled?: boolean;
+}
+
+function tenantPublicSiteMatcher(segments: UrlSegment[]): UrlMatchResult | null {
+  const runtimeConfig = globalThis.window?.webCreatorFirebaseConfig as TenantRuntimeConfig | undefined;
+  const domainBase = normalizeDomain(runtimeConfig?.tenantDomainBase ?? '');
+  const hostname = normalizeDomain(globalThis.location?.hostname ?? '');
+
+  if (!runtimeConfig?.tenantDomainRoutingEnabled || !domainBase || hostname === domainBase) {
+    return null;
+  }
+
+  if (!hostname.endsWith(`.${domainBase}`)) {
+    return null;
+  }
+
+  const tenantSlug = hostname.slice(0, -(domainBase.length + 1));
+  if (!tenantSlug || tenantSlug === 'www') {
+    return null;
+  }
+
+  return {
+    consumed: segments,
+    posParams: {
+      tenantSlug: new UrlSegment(tenantSlug, {}),
+      pageSlug: segments[0] ?? new UrlSegment('', {})
+    }
+  };
+}
+
+function normalizeDomain(value: string): string {
+  return value.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
+}
+
 export const routes: Routes = [
+  {
+    matcher: tenantPublicSiteMatcher,
+    loadComponent: () =>
+      import('./features/public-site/public-site.component').then((m) => m.PublicSiteComponent)
+  },
   {
     path: '',
     pathMatch: 'full',
@@ -53,6 +94,11 @@ export const routes: Routes = [
     data: { roles: ['superadmin', 'admin'] },
     loadComponent: () =>
       import('./features/review-queue/review-queue.component').then((m) => m.ReviewQueueComponent)
+  },
+  {
+    path: 'sites/:slug/:pageSlug',
+    loadComponent: () =>
+      import('./features/public-site/public-site.component').then((m) => m.PublicSiteComponent)
   },
   {
     path: 'sites/:slug',

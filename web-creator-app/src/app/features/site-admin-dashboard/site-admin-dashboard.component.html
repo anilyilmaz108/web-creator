@@ -15,6 +15,8 @@
         <a routerLink="/dashboard">Dashboard</a>
         @if (site.status === 'published') {
           <button type="button" class="danger" (click)="stopPublication(site)">Yayini Durdur</button>
+        } @else if (site.status === 'pending') {
+          <button type="button" class="muted" disabled>Onay Bekliyor</button>
         } @else {
           <button type="button" class="success" (click)="requestPublication(site)">Yayina Gonder</button>
         }
